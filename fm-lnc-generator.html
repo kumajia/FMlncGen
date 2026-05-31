@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FM .lnc コードジェネレーター</title>
+<meta name="description" content="Football Manager .lnc code generator with AI translation">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FM.LNC GEN">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0d0f14;
+    --bg-panel: #13151c;
+    --bg-card: #1a1d27;
+    --bg-input: #0f1118;
+    --accent: #00e5a0;
+    --accent-dim: #00b57d;
+    --accent-glow: rgba(0,229,160,0.15);
+    --warn: #f5c518;
+    --warn-dim: rgba(245,197,24,0.12);
+    --error: #ff4d6d;
+    --text-primary: #e8ecf5;
+    --text-secondary: #8892a4;
+    --text-muted: #4a5268;
+    --border: #1f2535;
+    --border-accent: rgba(0,229,160,0.3);
+    --step-num: #00e5a0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--accent) 0%, #00b8d9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--accent-glow);
+    border: 1px solid var(--border-accent);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 3px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* Step panels */
+  .step-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .step-panel:focus-within {
+    border-color: var(--border-accent);
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--step-num);
+    line-height: 1;
+    opacity: 0.6;
+    min-width: 28px;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .step-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .step-body {
+    padding: 24px;
+  }
+
+  /* Form elements */
+  .field-group {
+    margin-bottom: 18px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  input[type="password"],
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 11px 42px 11px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .toggle-vis {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 16px;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .toggle-vis:hover { color: var(--accent); }
+
+  textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    resize: vertical;
+    min-height: 160px;
+    outline: none;
+    line-height: 1.7;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  textarea:focus {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 11px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  select:focus {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  select option { background: var(--bg-input); color: var(--text-primary); }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-input);
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--border-accent);
+    background: var(--accent-glow);
+  }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.7; }
+  .drop-text { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
+  .drop-sub { font-size: 11px; color: var(--text-muted); }
+  kbd {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .img-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .img-thumb {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .img-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .img-thumb .remove {
+    position: absolute;
+    top: 2px; right: 2px;
+    background: rgba(13,15,20,0.85);
+    color: var(--error);
+    border: none;
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Language select */
+  .lang-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+  }
+  .lang-globe { font-size: 15px; opacity: 0.7; }
+  #lang-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.18s;
+  }
+  #lang-select:hover { border-color: var(--border-accent); }
+  #lang-select:focus { border-color: var(--border-accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+  #lang-select option { background: var(--bg-input); color: var(--text-primary); }
+
+  /* RTL support */
+  [dir="rtl"] .header { flex-direction: row-reverse; }
+  [dir="rtl"] .step-header { flex-direction: row-reverse; }
+  [dir="rtl"] .stat-chip,
+  [dir="rtl"] .field-label,
+  [dir="rtl"] .hint,
+  [dir="rtl"] .step-title,
+  [dir="rtl"] .step-desc { text-align: right; }
+  [dir="rtl"] th { text-align: right; }
+  [dir="rtl"] .drop-zone { direction: rtl; }
+  [dir="rtl"] textarea,
+  [dir="rtl"] .output-textarea,
+  [dir="rtl"] #raw-input { direction: ltr; text-align: left; }
+
+  /* Install bar */
+  #install-bar {
+    background: var(--accent-glow);
+    border: 1px solid var(--border-accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  #install-bar .install-text { font-size: 13px; color: var(--text-primary); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 5px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.18s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0d0f14;
+  }
+  .btn-primary:hover {
+    background: #00ffb2;
+    box-shadow: 0 0 20px rgba(0,229,160,0.35);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border-accent);
+    color: var(--accent);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--border-accent);
+  }
+  .btn-ghost:hover {
+    background: var(--accent-glow);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* Progress / status */
+  .status-bar {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    margin-top: 14px;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .dot.active { background: var(--accent); animation: pulse 1s infinite; }
+  .dot.error { background: var(--error); }
+  .dot.done { background: var(--accent); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead tr {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    padding: 11px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  td {
+    padding: 10px 14px;
+    vertical-align: middle;
+  }
+
+  .id-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .prefix-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .name-cell {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  .trans-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 13px;
+    color: var(--text-primary);
+    width: 100%;
+    min-width: 180px;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  }
+
+  .trans-input:focus {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .trans-input.is-new {
+    background: var(--warn-dim);
+    border-color: rgba(245,197,24,0.4);
+  }
+
+  .trans-input.is-new:focus {
+    box-shadow: 0 0 0 2px rgba(245,197,24,0.15);
+  }
+
+  /* New badge */
+  .new-tag {
+    display: inline-block;
+    background: var(--warn-dim);
+    border: 1px solid rgba(245,197,24,0.4);
+    color: var(--warn);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 1px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  /* Output textarea */
+  .output-textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #a8ffd9;
+    resize: vertical;
+    min-height: 200px;
+    width: 100%;
+    outline: none;
+    line-height: 1.8;
+  }
+
+  /* Alert */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .alert-error {
+    background: rgba(255,77,109,0.1);
+    border: 1px solid rgba(255,77,109,0.3);
+    color: #ff8fa3;
+  }
+
+  .alert-success {
+    background: var(--accent-glow);
+    border: 1px solid var(--border-accent);
+    color: var(--accent);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .empty-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.4;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  .stat-chip span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    display: block;
+    line-height: 1.2;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* Scroll bar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* Loading spinner */
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0,229,160,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Copy feedback */
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .copy-ok { animation: fadeOut 1.8s forwards; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-logo">FM.LNC<span style="color:#00b8d9;font-size:36px;">GEN</span></div>
+    </div>
+    <div style="padding-bottom:10px;flex:1;">
+      <div class="header-sub">Football Manager .lnc <span data-i18n="header_sub">コードジェネレーター</span> <span class="badge" data-i18n="badge_ai">AI翻訳対応</span></div>
+      <div style="font-size:12px;color:var(--text-muted);" data-i18n="header_desc">クラブ名を貼り付けて、日本語カタカナに自動翻訳・.lncコードを生成</div>
+    </div>
+    <div class="lang-select-wrap">
+      <span class="lang-globe">🌐</span>
+      <select id="lang-select" onchange="setLang(this.value)" aria-label="Language">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">简体中文</option>
+        <option value="ko">한국어</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="la">Latina</option>
+        <option value="he">עברית</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Install prompt -->
+  <div id="install-bar" style="display:none;"></div>
+
+  <!-- Alert area -->
+  <div id="alert-area"></div>
+
+  <!-- STEP 1: Setup & Input -->
+  <div class="step-panel">
+    <div class="step-header">
+      <div class="step-num">01</div>
+      <div>
+        <div class="step-title" data-i18n="step1_title">セットアップ＆データ入力</div>
+        <div class="step-desc" data-i18n="step1_desc">Gemini APIキーを設定し、クラブデータを貼り付けてください</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="field-group">
+        <label class="field-label" data-i18n="label_apikey">Gemini APIキー</label>
+        <div class="input-wrap">
+          <input type="password" id="api-key" placeholder="AIzaSy..." autocomplete="off">
+          <button class="toggle-vis" onclick="toggleApiVis()" title="表示/非表示">👁</button>
+        </div>
+        <div class="hint" data-i18n="hint_apikey">※ Google AI Studio (aistudio.google.com) で無料取得できます。キーはブラウザのlocalStorageに保存されます。</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" data-i18n="label_model">モデル選択</label>
+        <select id="model-select">
+          <option value="gemini-2.5-flash">gemini-2.5-flash（推奨・無料枠あり）</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite（高速・軽量）</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash（旧モデル）</option>
+        </select>
+        <div class="hint" data-i18n="hint_model">※ 「quota / limit: 0」エラーが出る場合は別のモデルを選んでください。2.0-flashの無料枠が0になっているアカウントが多発しています。</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" data-i18n="label_rate">リクエスト間隔（レート制限対策）</label>
+        <select id="rate-gap">
+          <option value="13000" data-i18n="rate_safe">安全（13秒間隔／無料枠 5 RPM 向け・推奨）</option>
+          <option value="5000" data-i18n="rate_std">標準（5秒間隔／15 RPM 向け）</option>
+          <option value="1500" data-i18n="rate_fast">高速（1.5秒間隔）</option>
+          <option value="400" data-i18n="rate_max">最速（0.4秒間隔／有料枠向け）</option>
+        </select>
+        <div class="hint" data-i18n="hint_rate">※ 「limit: 5 / retry in Xs」エラーは速すぎが原因。無料枠は通常1分5件なので「安全」を選んでください。429が出ても自動でリトライします。</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" data-i18n="label_screenshot">📷 スクリーンショットから抽出（任意）</label>
+        <div id="drop-zone" class="drop-zone" onclick="document.getElementById('img-file').click()">
+          <input type="file" id="img-file" accept="image/*" multiple style="display:none;" onchange="handleFileSelect(event)">
+          <div class="drop-inner">
+            <div class="drop-icon">🖼️</div>
+            <div class="drop-text"><span data-i18n="drop_text1">クリックで画像を選択 ／ ここに</span> <kbd>Ctrl</kbd>+<kbd>V</kbd> <span data-i18n="drop_text2">で貼り付け</span></div>
+            <div class="drop-sub" data-i18n="drop_sub">FMの画面スクショからクラブ名とIDをAIが自動抽出します（複数枚OK）</div>
+          </div>
+        </div>
+        <div id="img-preview" class="img-preview"></div>
+        <div class="btn-row" id="extract-row" style="display:none;margin-top:12px;">
+          <button class="btn btn-ghost" onclick="extractFromImages()">
+            <span>🔍</span> <span data-i18n="btn_extract">画像からクラブ名とIDを抽出</span>
+          </button>
+          <button class="btn btn-secondary" onclick="clearImages()" style="font-size:12px;" data-i18n="btn_clearimg">画像をクリア</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" data-i18n="label_clubdata">クラブデータ（1行1クラブ）</label>
+        <textarea id="raw-input" placeholder="KE wervik 539859&#10;pays vert ostiches ath 3200572&#10;SV wevelgem 12345&#10;FC london city 999001"></textarea>
+        <div class="hint" data-i18n="hint_clubdata">形式: [プレフィックス(任意)] [クラブ名] [ID数字] — スクショ抽出結果もここに入ります</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runParse()">
+          <span>⚡</span> <span data-i18n="btn_run">解析して翻訳開始</span>
+        </button>
+        <button class="btn btn-secondary" onclick="clearAll()" data-i18n="btn_clear">クリア</button>
+      </div>
+
+      <div class="status-bar" id="status-bar">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text" data-i18n="status_idle">待機中 — データを入力して「解析して翻訳開始」をクリック</span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label"><span data-i18n="label_dictmgmt">📚 ユーザー辞書の管理</span> <span id="dict-count" style="color:var(--accent);font-weight:400;"></span></label>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="downloadUserDict()" style="font-size:12px;" data-i18n="btn_dictdl">
+            ⬇ 辞書をダウンロード
+          </button>
+          <button class="btn btn-secondary" onclick="document.getElementById('dict-import-1').click()" style="font-size:12px;" data-i18n="btn_dictimport">
+            ⬆ 辞書をインポート
+          </button>
+          <input type="file" id="dict-import-1" accept=".json,application/json" style="display:none;" onchange="importUserDict(event)">
+        </div>
+        <div class="hint" data-i18n="hint_dictmgmt">辞書をJSONで保存・読み込みできます。別のPCへの移行や、仲間との共有・バックアップに使えます。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Review & Edit -->
+  <div class="step-panel">
+    <div class="step-header">
+      <div class="step-num">02</div>
+      <div>
+        <div class="step-title" data-i18n="step2_title">レビュー＆編集テーブル</div>
+        <div class="step-desc" data-i18n="step2_desc">翻訳結果を確認・手動修正してください。黄色はAI翻訳または新規ワードです</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div id="stats-area" style="display:none;" class="stats-row">
+        <div class="stat-chip"><span data-i18n="stat_total">全クラブ数</span><span id="stat-total">0</span></div>
+        <div class="stat-chip"><span data-i18n="stat_dict">辞書ヒット</span><span id="stat-dict">0</span></div>
+        <div class="stat-chip"><span data-i18n="stat_ai">AI翻訳</span><span id="stat-ai">0</span></div>
+        <div class="stat-chip"><span data-i18n="stat_user">ユーザー辞書</span><span id="stat-user">0</span></div>
+      </div>
+      <div id="table-area">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div data-i18n="empty_table">Step 1 でデータを解析すると、ここに結果が表示されます</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;" id="save-dict-row" style="display:none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Output -->
+  <div class="step-panel">
+    <div class="step-header">
+      <div class="step-num">03</div>
+      <div>
+        <div class="step-title" data-i18n="step3_title">出力 — .lnc コード</div>
+        <div class="step-desc" data-i18n="step3_desc">生成された .lnc フォーマットをコピーして Football Manager に適用</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="generateLnc()">
+          <span>🔨</span> <span data-i18n="btn_gen">.lncコード生成</span>
+        </button>
+        <button class="btn btn-ghost" onclick="copyOutput()" id="copy-btn">
+          <span>📋</span> <span data-i18n="btn_copy">クリップボードにコピー</span>
+        </button>
+        <button class="btn btn-secondary" onclick="downloadLnc()">
+          <span>💾</span> <span data-i18n="btn_savelnc">.lncファイルで保存</span>
+        </button>
+      </div>
+      <textarea class="output-textarea" id="output" placeholder='; ここに .lnc コードが生成されます&#10;; 例: "CLUB_LONG_NAME_CHANGE" 539859 "KE ウェルヴィク"' oninput="updateOutputInfo()"></textarea>
+      <div class="hint" id="output-info" style="margin-top:8px;" data-i18n="output_info">この欄は直接編集できます。修正してからコピー／保存してください。</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================
+// 多言語辞書 (i18n)
+// ============================
+const I18N = {
+  ja: {
+    header_sub: "コードジェネレーター", badge_ai: "AI翻訳対応",
+    header_desc: "クラブ名を貼り付けて、日本語カタカナに自動翻訳・.lncコードを生成",
+    step1_title: "セットアップ＆データ入力",
+    step1_desc: "Gemini APIキーを設定し、クラブデータを貼り付けてください",
+    label_apikey: "Gemini APIキー",
+    hint_apikey: "※ Google AI Studio (aistudio.google.com) で無料取得できます。キーはブラウザのlocalStorageに保存されます。",
+    label_model: "モデル選択",
+    hint_model: "※ 「quota / limit: 0」エラーが出る場合は別のモデルを選んでください。2.0-flashの無料枠が0になっているアカウントが多発しています。",
+    label_rate: "リクエスト間隔（レート制限対策）",
+    rate_safe: "安全（13秒間隔／無料枠 5 RPM 向け・推奨）",
+    rate_std: "標準（5秒間隔／15 RPM 向け）",
+    rate_fast: "高速（1.5秒間隔）",
+    rate_max: "最速（0.4秒間隔／有料枠向け）",
+    hint_rate: "※ 「limit: 5 / retry in Xs」エラーは速すぎが原因。無料枠は通常1分5件なので「安全」を選んでください。429が出ても自動でリトライします。",
+    label_screenshot: "📷 スクリーンショットから抽出（任意）",
+    drop_text1: "クリックで画像を選択 ／ ここに", drop_text2: "で貼り付け",
+    drop_sub: "FMの画面スクショからクラブ名とIDをAIが自動抽出します（複数枚OK）",
+    btn_extract: "画像からクラブ名とIDを抽出", btn_clearimg: "画像をクリア",
+    label_clubdata: "クラブデータ（1行1クラブ）",
+    hint_clubdata: "形式: [プレフィックス(任意)] [クラブ名] [ID数字] — スクショ抽出結果もここに入ります",
+    btn_run: "解析して翻訳開始", btn_clear: "クリア",
+    status_idle: "待機中 — データを入力して「解析して翻訳開始」をクリック",
+    label_dictmgmt: "📚 ユーザー辞書の管理",
+    btn_dictdl: "⬇ 辞書をダウンロード", btn_dictimport: "⬆ 辞書をインポート",
+    hint_dictmgmt: "辞書をJSONで保存・読み込みできます。別のPCへの移行や、仲間との共有・バックアップに使えます。",
+    step2_title: "レビュー＆編集テーブル",
+    step2_desc: "翻訳結果を確認・手動修正してください。黄色はAI翻訳または新規ワードです",
+    stat_total: "全クラブ数", stat_dict: "辞書ヒット", stat_ai: "AI翻訳", stat_user: "ユーザー辞書",
+    empty_table: "Step 1 でデータを解析すると、ここに結果が表示されます",
+    step3_title: "出力 — .lnc コード",
+    step3_desc: "生成された .lnc フォーマットをコピーして Football Manager に適用",
+    btn_gen: ".lncコード生成", btn_copy: "クリップボードにコピー", btn_savelnc: ".lncファイルで保存",
+    output_info: "この欄は直接編集できます。修正してからコピー／保存してください。",
+    // テーブルヘッダー
+    th_id: "ID", th_prefix: "プレフィックス", th_name: "原語クラブ名", th_trans: "日本語翻訳（編集可）",
+    btn_savedict: "💾 手動編集をユーザー辞書に保存", btn_resetdict: "🗑 ユーザー辞書をリセット",
+    new_tag: "NEW",
+    // インストール
+    install_text: "このツールをアプリとしてインストールできます。",
+    install_btn: "インストール",
+    // 動的メッセージ
+    msg_need_data: "データを入力してください。",
+    msg_need_key: "APIキーを入力してください。",
+    msg_no_valid: "有効な行が見つかりませんでした。形式を確認してください。\n例: KE wervik 539859",
+    msg_processing: (n) => `${n} 件を処理中...`,
+    msg_translating: (a,b,p) => `AI翻訳中... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `レート制限中… ${s}秒待機してリトライ (${a}/${m})`,
+    msg_done: (t,d,a,u) => `完了！ ${t} 件処理。辞書:${d} / AI:${a} / ユーザー:${u}`,
+    msg_transfail: "⚠ 翻訳失敗",
+    msg_transerr: (p,e) => `翻訳エラー (${p}): ${e}`,
+    dict_count: (n) => n ? `（現在 ${n} 件）` : "（空）",
+    msg_no_img: "画像が読み込まれていません。",
+    msg_img_analyzing: (n) => `画像を解析中... (${n} 枚)`,
+    msg_extract_done: (n) => `抽出完了！ ${n} 行を入力欄に追加しました。内容を確認して「解析して翻訳開始」へ。`,
+    msg_extract_ok: (n) => `${n} 行のクラブデータを抽出しました。入力欄で内容を確認・修正してください。`,
+    msg_img_pasted: "画像を貼り付けました。「画像から抽出」をクリックしてください。",
+    msg_extracterr: (e) => `画像抽出エラー: ${e}`,
+    msg_savedict: (n) => `${n} 件のワードをユーザー辞書に保存しました。次回は自動入力されます。`,
+    msg_confirm_resetdict: "ユーザー辞書をすべて削除しますか？",
+    msg_resetdict: "ユーザー辞書をリセットしました。",
+    msg_dict_empty: "ユーザー辞書が空です。先に単語を保存してください。",
+    msg_dict_dl: (n) => `ユーザー辞書 (${n} 件) をダウンロードしました。`,
+    msg_json_fail: "JSONの読み込みに失敗しました。ファイル形式を確認してください。",
+    msg_badformat: "辞書の形式が正しくありません（オブジェクト形式である必要があります）。",
+    msg_no_entries: "有効な辞書エントリが見つかりませんでした。",
+    msg_import_confirm: (n) => `現在 ${n} 件のユーザー辞書があります。\n\n「OK」= 統合（既存に追加・同じ語は上書き）\n「キャンセル」= 置き換え（既存を破棄して全部入れ替え）`,
+    msg_import_done: (mode,a,u,t) => `辞書をインポートしました（${mode}）。新規 ${a} 件 / 更新 ${u} 件 / 合計 ${t} 件。「解析して翻訳開始」を押すと反映されます。`,
+    mode_merge: "統合", mode_replace: "置き換え",
+    msg_gen_first: "先に .lnc コードを生成してください。",
+    msg_parse_first: "先にデータを解析してください。",
+    msg_copy_ok: "コピー完了！",
+    msg_copy_fail: "クリップボードへのコピーに失敗しました。手動でコピーしてください。",
+    msg_lnc_saved: "club_names.lnc を保存しました。",
+    output_info_count: (l,c) => `この欄は直接編集できます。 — ${l} 行 / ${c} 文字`,
+  },
+  en: {
+    header_sub: "Code Generator", badge_ai: "AI Translation",
+    header_desc: "Paste club names to auto-translate into Japanese katakana and generate .lnc code",
+    step1_title: "Setup & Input",
+    step1_desc: "Set your Gemini API key and paste club data",
+    label_apikey: "Gemini API Key",
+    hint_apikey: "Get one free at Google AI Studio (aistudio.google.com). The key is stored in your browser's localStorage.",
+    label_model: "Model",
+    hint_model: "If you get a \"quota / limit: 0\" error, pick another model. Many accounts now have 0 free quota for 2.0-flash.",
+    label_rate: "Request interval (rate-limit protection)",
+    rate_safe: "Safe (13s interval / for 5 RPM free tier · recommended)",
+    rate_std: "Standard (5s interval / for 15 RPM)",
+    rate_fast: "Fast (1.5s interval)",
+    rate_max: "Fastest (0.4s interval / for paid tier)",
+    hint_rate: "A \"limit: 5 / retry in Xs\" error means too fast. Free tier is usually 5/min, so pick \"Safe\". 429 errors are auto-retried.",
+    label_screenshot: "📷 Extract from screenshot (optional)",
+    drop_text1: "Click to select an image, or", drop_text2: "to paste here",
+    drop_sub: "AI auto-extracts club names and IDs from FM screenshots (multiple OK)",
+    btn_extract: "Extract club names & IDs from images", btn_clearimg: "Clear images",
+    label_clubdata: "Club data (one club per line)",
+    hint_clubdata: "Format: [Prefix (optional)] [Club name] [ID number] — screenshot results land here too",
+    btn_run: "Parse & Translate", btn_clear: "Clear",
+    status_idle: "Idle — enter data and click \"Parse & Translate\"",
+    label_dictmgmt: "📚 User dictionary",
+    btn_dictdl: "⬇ Download dictionary", btn_dictimport: "⬆ Import dictionary",
+    hint_dictmgmt: "Save/load your dictionary as JSON — for moving to another PC, sharing with friends, or backups.",
+    step2_title: "Review & Edit",
+    step2_desc: "Review and manually correct the translations. Yellow = AI-translated or new word.",
+    stat_total: "Total clubs", stat_dict: "Dict hits", stat_ai: "AI translated", stat_user: "User dict",
+    empty_table: "Parse data in Step 1 and results will appear here",
+    step3_title: "Output — .lnc code",
+    step3_desc: "Copy the generated .lnc format and apply it to Football Manager",
+    btn_gen: "Generate .lnc code", btn_copy: "Copy to clipboard", btn_savelnc: "Save as .lnc file",
+    output_info: "This field is editable. Edit before copying / saving.",
+    th_id: "ID", th_prefix: "Prefix", th_name: "Original name", th_trans: "Translation (editable)",
+    btn_savedict: "💾 Save edits to user dictionary", btn_resetdict: "🗑 Reset user dictionary",
+    new_tag: "NEW",
+    install_text: "You can install this tool as an app.", install_btn: "Install",
+    msg_need_data: "Please enter some data.",
+    msg_need_key: "Please enter your API key.",
+    msg_no_valid: "No valid lines found. Check the format.\nExample: KE wervik 539859",
+    msg_processing: (n) => `Processing ${n} items...`,
+    msg_translating: (a,b,p) => `Translating with AI... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `Rate limited… waiting ${s}s then retrying (${a}/${m})`,
+    msg_done: (t,d,a,u) => `Done! Processed ${t}. Dict:${d} / AI:${a} / User:${u}`,
+    msg_transfail: "⚠ Translation failed",
+    msg_transerr: (p,e) => `Translation error (${p}): ${e}`,
+    dict_count: (n) => n ? `(${n} entries)` : "(empty)",
+    msg_no_img: "No image loaded.",
+    msg_img_analyzing: (n) => `Analyzing images... (${n})`,
+    msg_extract_done: (n) => `Extracted! Added ${n} lines to the input. Review, then click "Parse & Translate".`,
+    msg_extract_ok: (n) => `Extracted ${n} club lines. Please review/edit them in the input field.`,
+    msg_img_pasted: "Image pasted. Click \"Extract from images\".",
+    msg_extracterr: (e) => `Image extraction error: ${e}`,
+    msg_savedict: (n) => `Saved ${n} words to your dictionary. They'll auto-fill next time.`,
+    msg_confirm_resetdict: "Delete the entire user dictionary?",
+    msg_resetdict: "User dictionary reset.",
+    msg_dict_empty: "User dictionary is empty. Save some words first.",
+    msg_dict_dl: (n) => `Downloaded user dictionary (${n} entries).`,
+    msg_json_fail: "Failed to read JSON. Check the file format.",
+    msg_badformat: "Invalid dictionary format (must be an object).",
+    msg_no_entries: "No valid dictionary entries found.",
+    msg_import_confirm: (n) => `You currently have ${n} dictionary entries.\n\n"OK" = Merge (add to existing, overwrite same keys)\n"Cancel" = Replace (discard existing, full replace)`,
+    msg_import_done: (mode,a,u,t) => `Dictionary imported (${mode}). New ${a} / Updated ${u} / Total ${t}. Click "Parse & Translate" to apply.`,
+    mode_merge: "Merge", mode_replace: "Replace",
+    msg_gen_first: "Generate the .lnc code first.",
+    msg_parse_first: "Parse data first.",
+    msg_copy_ok: "Copied!",
+    msg_copy_fail: "Failed to copy to clipboard. Please copy manually.",
+    msg_lnc_saved: "Saved club_names.lnc.",
+    output_info_count: (l,c) => `This field is editable. — ${l} lines / ${c} chars`,
+  },
+  zh: {
+    header_sub: "代码生成器", badge_ai: "AI 翻译",
+    header_desc: "粘贴俱乐部名称，自动翻译成日语片假名并生成 .lnc 代码",
+    step1_title: "设置与输入",
+    step1_desc: "设置你的 Gemini API 密钥并粘贴俱乐部数据",
+    label_apikey: "Gemini API 密钥",
+    hint_apikey: "可在 Google AI Studio (aistudio.google.com) 免费获取。密钥保存在浏览器的 localStorage 中。",
+    label_model: "模型选择",
+    hint_model: "如果出现 \"quota / limit: 0\" 错误，请选择其他模型。很多账户的 2.0-flash 免费额度已为 0。",
+    label_rate: "请求间隔（限流保护）",
+    rate_safe: "安全（13秒间隔／适合 5 RPM 免费额度·推荐）",
+    rate_std: "标准（5秒间隔／适合 15 RPM）",
+    rate_fast: "快速（1.5秒间隔）",
+    rate_max: "最快（0.4秒间隔／适合付费额度）",
+    hint_rate: "\"limit: 5 / retry in Xs\" 错误表示太快了。免费额度通常每分钟 5 次，请选\"安全\"。出现 429 会自动重试。",
+    label_screenshot: "📷 从截图提取（可选）",
+    drop_text1: "点击选择图片，或在此", drop_text2: "粘贴",
+    drop_sub: "AI 会自动从 FM 截图中提取俱乐部名称和 ID（可多张）",
+    btn_extract: "从图片提取俱乐部名称和 ID", btn_clearimg: "清除图片",
+    label_clubdata: "俱乐部数据（每行一个）",
+    hint_clubdata: "格式：[前缀(可选)] [俱乐部名] [ID 数字] — 截图提取结果也会进入此处",
+    btn_run: "解析并翻译", btn_clear: "清除",
+    status_idle: "待机中 — 输入数据并点击\"解析并翻译\"",
+    label_dictmgmt: "📚 用户词典管理",
+    btn_dictdl: "⬇ 下载词典", btn_dictimport: "⬆ 导入词典",
+    hint_dictmgmt: "可将词典保存/读取为 JSON，用于迁移到其他电脑、与好友共享或备份。",
+    step2_title: "审核与编辑",
+    step2_desc: "请确认并手动修正翻译。黄色 = AI 翻译或新词。",
+    stat_total: "俱乐部总数", stat_dict: "词典命中", stat_ai: "AI 翻译", stat_user: "用户词典",
+    empty_table: "在步骤 1 解析数据后，结果将显示在这里",
+    step3_title: "输出 — .lnc 代码",
+    step3_desc: "复制生成的 .lnc 格式并应用到 Football Manager",
+    btn_gen: "生成 .lnc 代码", btn_copy: "复制到剪贴板", btn_savelnc: "保存为 .lnc 文件",
+    output_info: "此栏可直接编辑。编辑后再复制／保存。",
+    th_id: "ID", th_prefix: "前缀", th_name: "原始名称", th_trans: "翻译（可编辑）",
+    btn_savedict: "💾 将编辑保存到用户词典", btn_resetdict: "🗑 重置用户词典",
+    new_tag: "新",
+    install_text: "你可以将此工具安装为应用。", install_btn: "安装",
+    msg_need_data: "请输入数据。",
+    msg_need_key: "请输入你的 API 密钥。",
+    msg_no_valid: "未找到有效行。请检查格式。\n示例：KE wervik 539859",
+    msg_processing: (n) => `正在处理 ${n} 项...`,
+    msg_translating: (a,b,p) => `AI 翻译中... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `已限流… 等待 ${s} 秒后重试 (${a}/${m})`,
+    msg_done: (t,d,a,u) => `完成！已处理 ${t} 项。词典:${d} / AI:${a} / 用户:${u}`,
+    msg_transfail: "⚠ 翻译失败",
+    msg_transerr: (p,e) => `翻译错误 (${p}): ${e}`,
+    dict_count: (n) => n ? `（当前 ${n} 项）` : "（空）",
+    msg_no_img: "未加载图片。",
+    msg_img_analyzing: (n) => `正在分析图片... (${n} 张)`,
+    msg_extract_done: (n) => `提取完成！已向输入栏添加 ${n} 行。请确认后点击\"解析并翻译\"。`,
+    msg_extract_ok: (n) => `已提取 ${n} 行俱乐部数据。请在输入栏确认/修改。`,
+    msg_img_pasted: "已粘贴图片。请点击\"从图片提取\"。",
+    msg_extracterr: (e) => `图片提取错误: ${e}`,
+    msg_savedict: (n) => `已将 ${n} 个词保存到用户词典。下次会自动填充。`,
+    msg_confirm_resetdict: "要删除整个用户词典吗？",
+    msg_resetdict: "用户词典已重置。",
+    msg_dict_empty: "用户词典为空。请先保存一些词。",
+    msg_dict_dl: (n) => `已下载用户词典（${n} 项）。`,
+    msg_json_fail: "读取 JSON 失败。请检查文件格式。",
+    msg_badformat: "词典格式无效（必须是对象格式）。",
+    msg_no_entries: "未找到有效的词典条目。",
+    msg_import_confirm: (n) => `你当前有 ${n} 个词典条目。\n\n\"确定\" = 合并（添加到现有，覆盖相同键）\n\"取消\" = 替换（丢弃现有，全部替换）`,
+    msg_import_done: (mode,a,u,t) => `词典已导入（${mode}）。新增 ${a} / 更新 ${u} / 合计 ${t}。点击\"解析并翻译\"以应用。`,
+    mode_merge: "合并", mode_replace: "替换",
+    msg_gen_first: "请先生成 .lnc 代码。",
+    msg_parse_first: "请先解析数据。",
+    msg_copy_ok: "已复制！",
+    msg_copy_fail: "复制到剪贴板失败。请手动复制。",
+    msg_lnc_saved: "已保存 club_names.lnc。",
+    output_info_count: (l,c) => `此栏可直接编辑。— ${l} 行 / ${c} 字`,
+  },
+  ko: {
+    header_sub: "코드 생성기", badge_ai: "AI 번역",
+    header_desc: "클럽 이름을 붙여넣어 일본어 가타카나로 자동 번역하고 .lnc 코드를 생성",
+    step1_title: "설정 및 입력",
+    step1_desc: "Gemini API 키를 설정하고 클럽 데이터를 붙여넣으세요",
+    label_apikey: "Gemini API 키",
+    hint_apikey: "Google AI Studio (aistudio.google.com)에서 무료로 받을 수 있습니다. 키는 브라우저 localStorage에 저장됩니다.",
+    label_model: "모델 선택",
+    hint_model: "\"quota / limit: 0\" 오류가 나면 다른 모델을 선택하세요. 많은 계정에서 2.0-flash 무료 할당량이 0입니다.",
+    label_rate: "요청 간격 (속도 제한 방지)",
+    rate_safe: "안전 (13초 간격 / 5 RPM 무료 등급용·권장)",
+    rate_std: "표준 (5초 간격 / 15 RPM용)",
+    rate_fast: "빠름 (1.5초 간격)",
+    rate_max: "가장 빠름 (0.4초 간격 / 유료 등급용)",
+    hint_rate: "\"limit: 5 / retry in Xs\" 오류는 너무 빠르다는 뜻입니다. 무료 등급은 보통 분당 5회이니 \"안전\"을 선택하세요. 429는 자동 재시도됩니다.",
+    label_screenshot: "📷 스크린샷에서 추출 (선택)",
+    drop_text1: "클릭하여 이미지 선택, 또는 여기에", drop_text2: "붙여넣기",
+    drop_sub: "AI가 FM 스크린샷에서 클럽 이름과 ID를 자동 추출합니다 (여러 장 가능)",
+    btn_extract: "이미지에서 클럽 이름과 ID 추출", btn_clearimg: "이미지 지우기",
+    label_clubdata: "클럽 데이터 (한 줄에 하나)",
+    hint_clubdata: "형식: [접두사(선택)] [클럽 이름] [ID 숫자] — 스크린샷 추출 결과도 여기에 들어갑니다",
+    btn_run: "분석 및 번역", btn_clear: "지우기",
+    status_idle: "대기 중 — 데이터를 입력하고 \"분석 및 번역\"을 클릭",
+    label_dictmgmt: "📚 사용자 사전 관리",
+    btn_dictdl: "⬇ 사전 다운로드", btn_dictimport: "⬆ 사전 가져오기",
+    hint_dictmgmt: "사전을 JSON으로 저장/불러올 수 있습니다. 다른 PC로 이전, 친구와 공유, 백업에 사용하세요.",
+    step2_title: "검토 및 편집",
+    step2_desc: "번역을 확인하고 수동으로 수정하세요. 노란색 = AI 번역 또는 새 단어.",
+    stat_total: "전체 클럽", stat_dict: "사전 일치", stat_ai: "AI 번역", stat_user: "사용자 사전",
+    empty_table: "1단계에서 데이터를 분석하면 여기에 결과가 표시됩니다",
+    step3_title: "출력 — .lnc 코드",
+    step3_desc: "생성된 .lnc 형식을 복사하여 Football Manager에 적용하세요",
+    btn_gen: ".lnc 코드 생성", btn_copy: "클립보드에 복사", btn_savelnc: ".lnc 파일로 저장",
+    output_info: "이 칸은 직접 편집할 수 있습니다. 편집 후 복사／저장하세요.",
+    th_id: "ID", th_prefix: "접두사", th_name: "원어 이름", th_trans: "번역 (편집 가능)",
+    btn_savedict: "💾 편집을 사용자 사전에 저장", btn_resetdict: "🗑 사용자 사전 초기화",
+    new_tag: "신규",
+    install_text: "이 도구를 앱으로 설치할 수 있습니다.", install_btn: "설치",
+    msg_need_data: "데이터를 입력하세요.",
+    msg_need_key: "API 키를 입력하세요.",
+    msg_no_valid: "유효한 줄을 찾을 수 없습니다. 형식을 확인하세요.\n예: KE wervik 539859",
+    msg_processing: (n) => `${n}건 처리 중...`,
+    msg_translating: (a,b,p) => `AI 번역 중... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `속도 제한 중… ${s}초 대기 후 재시도 (${a}/${m})`,
+    msg_done: (t,d,a,u) => `완료! ${t}건 처리. 사전:${d} / AI:${a} / 사용자:${u}`,
+    msg_transfail: "⚠ 번역 실패",
+    msg_transerr: (p,e) => `번역 오류 (${p}): ${e}`,
+    dict_count: (n) => n ? `(현재 ${n}건)` : "(비어 있음)",
+    msg_no_img: "이미지가 로드되지 않았습니다.",
+    msg_img_analyzing: (n) => `이미지 분석 중... (${n}장)`,
+    msg_extract_done: (n) => `추출 완료! 입력란에 ${n}줄 추가했습니다. 확인 후 \"분석 및 번역\"을 클릭하세요.`,
+    msg_extract_ok: (n) => `${n}줄의 클럽 데이터를 추출했습니다. 입력란에서 확인/수정하세요.`,
+    msg_img_pasted: "이미지를 붙여넣었습니다. \"이미지에서 추출\"을 클릭하세요.",
+    msg_extracterr: (e) => `이미지 추출 오류: ${e}`,
+    msg_savedict: (n) => `${n}개 단어를 사용자 사전에 저장했습니다. 다음에 자동 입력됩니다.`,
+    msg_confirm_resetdict: "사용자 사전을 모두 삭제할까요?",
+    msg_resetdict: "사용자 사전을 초기화했습니다.",
+    msg_dict_empty: "사용자 사전이 비어 있습니다. 먼저 단어를 저장하세요.",
+    msg_dict_dl: (n) => `사용자 사전 (${n}건)을 다운로드했습니다.`,
+    msg_json_fail: "JSON 읽기에 실패했습니다. 파일 형식을 확인하세요.",
+    msg_badformat: "사전 형식이 올바르지 않습니다 (객체 형식이어야 합니다).",
+    msg_no_entries: "유효한 사전 항목을 찾을 수 없습니다.",
+    msg_import_confirm: (n) => `현재 ${n}개의 사전 항목이 있습니다.\n\n\"확인\" = 통합 (기존에 추가, 같은 키는 덮어쓰기)\n\"취소\" = 교체 (기존 폐기, 전체 교체)`,
+    msg_import_done: (mode,a,u,t) => `사전을 가져왔습니다 (${mode}). 신규 ${a} / 갱신 ${u} / 합계 ${t}. \"분석 및 번역\"을 누르면 반영됩니다.`,
+    mode_merge: "통합", mode_replace: "교체",
+    msg_gen_first: "먼저 .lnc 코드를 생성하세요.",
+    msg_parse_first: "먼저 데이터를 분석하세요.",
+    msg_copy_ok: "복사 완료!",
+    msg_copy_fail: "클립보드 복사에 실패했습니다. 수동으로 복사하세요.",
+    msg_lnc_saved: "club_names.lnc를 저장했습니다.",
+    output_info_count: (l,c) => `이 칸은 직접 편집할 수 있습니다. — ${l}줄 / ${c}자`,
+  },
+  de: {
+    header_sub: "Code-Generator", badge_ai: "KI-Übersetzung",
+    header_desc: "Vereinsnamen einfügen, automatisch ins japanische Katakana übersetzen und .lnc-Code erzeugen",
+    step1_title: "Einrichtung & Eingabe",
+    step1_desc: "Gemini-API-Schlüssel festlegen und Vereinsdaten einfügen",
+    label_apikey: "Gemini-API-Schlüssel",
+    hint_apikey: "Kostenlos bei Google AI Studio (aistudio.google.com) erhältlich. Der Schlüssel wird im localStorage des Browsers gespeichert.",
+    label_model: "Modellauswahl",
+    hint_model: "Bei \"quota / limit: 0\"-Fehler bitte ein anderes Modell wählen. Viele Konten haben jetzt 0 Freikontingent für 2.0-flash.",
+    label_rate: "Anfrageintervall (Ratenbegrenzungsschutz)",
+    rate_safe: "Sicher (13s Intervall / für 5 RPM Gratis-Stufe · empfohlen)",
+    rate_std: "Standard (5s Intervall / für 15 RPM)",
+    rate_fast: "Schnell (1,5s Intervall)",
+    rate_max: "Am schnellsten (0,4s Intervall / für Bezahl-Stufe)",
+    hint_rate: "Ein \"limit: 5 / retry in Xs\"-Fehler bedeutet zu schnell. Gratis-Stufe ist meist 5/Min, also \"Sicher\" wählen. 429-Fehler werden automatisch wiederholt.",
+    label_screenshot: "📷 Aus Screenshot extrahieren (optional)",
+    drop_text1: "Klicken zum Auswählen eines Bildes, oder", drop_text2: "hier einfügen",
+    drop_sub: "Die KI extrahiert Vereinsnamen und IDs automatisch aus FM-Screenshots (mehrere möglich)",
+    btn_extract: "Vereinsnamen & IDs aus Bildern extrahieren", btn_clearimg: "Bilder löschen",
+    label_clubdata: "Vereinsdaten (ein Verein pro Zeile)",
+    hint_clubdata: "Format: [Präfix (optional)] [Vereinsname] [ID-Nummer] — Screenshot-Ergebnisse landen auch hier",
+    btn_run: "Analysieren & Übersetzen", btn_clear: "Löschen",
+    status_idle: "Bereit — Daten eingeben und \"Analysieren & Übersetzen\" klicken",
+    label_dictmgmt: "📚 Benutzerwörterbuch",
+    btn_dictdl: "⬇ Wörterbuch herunterladen", btn_dictimport: "⬆ Wörterbuch importieren",
+    hint_dictmgmt: "Wörterbuch als JSON speichern/laden — zum Übertragen auf einen anderen PC, Teilen mit Freunden oder als Backup.",
+    step2_title: "Prüfen & Bearbeiten",
+    step2_desc: "Übersetzungen prüfen und manuell korrigieren. Gelb = KI-übersetzt oder neues Wort.",
+    stat_total: "Vereine gesamt", stat_dict: "Wörterbuch-Treffer", stat_ai: "KI-übersetzt", stat_user: "Benutzerwörterbuch",
+    empty_table: "Daten in Schritt 1 analysieren, dann erscheinen die Ergebnisse hier",
+    step3_title: "Ausgabe — .lnc-Code",
+    step3_desc: "Den erzeugten .lnc-Code kopieren und in Football Manager anwenden",
+    btn_gen: ".lnc-Code erzeugen", btn_copy: "In Zwischenablage kopieren", btn_savelnc: "Als .lnc-Datei speichern",
+    output_info: "Dieses Feld ist bearbeitbar. Vor dem Kopieren/Speichern bearbeiten.",
+    th_id: "ID", th_prefix: "Präfix", th_name: "Originalname", th_trans: "Übersetzung (bearbeitbar)",
+    btn_savedict: "💾 Änderungen im Wörterbuch speichern", btn_resetdict: "🗑 Benutzerwörterbuch zurücksetzen",
+    new_tag: "NEU",
+    install_text: "Du kannst dieses Tool als App installieren.", install_btn: "Installieren",
+    msg_need_data: "Bitte Daten eingeben.",
+    msg_need_key: "Bitte API-Schlüssel eingeben.",
+    msg_no_valid: "Keine gültigen Zeilen gefunden. Format prüfen.\nBeispiel: KE wervik 539859",
+    msg_processing: (n) => `Verarbeite ${n} Einträge...`,
+    msg_translating: (a,b,p) => `KI-Übersetzung... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `Ratenbegrenzung… warte ${s}s und versuche erneut (${a}/${m})`,
+    msg_done: (t,d,a,u) => `Fertig! ${t} verarbeitet. Wörterb.:${d} / KI:${a} / Benutzer:${u}`,
+    msg_transfail: "⚠ Übersetzung fehlgeschlagen",
+    msg_transerr: (p,e) => `Übersetzungsfehler (${p}): ${e}`,
+    dict_count: (n) => n ? `(${n} Einträge)` : "(leer)",
+    msg_no_img: "Kein Bild geladen.",
+    msg_img_analyzing: (n) => `Analysiere Bilder... (${n})`,
+    msg_extract_done: (n) => `Extrahiert! ${n} Zeilen zur Eingabe hinzugefügt. Prüfen, dann \"Analysieren & Übersetzen\" klicken.`,
+    msg_extract_ok: (n) => `${n} Vereinszeilen extrahiert. Bitte im Eingabefeld prüfen/bearbeiten.`,
+    msg_img_pasted: "Bild eingefügt. \"Aus Bildern extrahieren\" klicken.",
+    msg_extracterr: (e) => `Bildextraktionsfehler: ${e}`,
+    msg_savedict: (n) => `${n} Wörter im Wörterbuch gespeichert. Beim nächsten Mal automatisch ausgefüllt.`,
+    msg_confirm_resetdict: "Gesamtes Benutzerwörterbuch löschen?",
+    msg_resetdict: "Benutzerwörterbuch zurückgesetzt.",
+    msg_dict_empty: "Benutzerwörterbuch ist leer. Zuerst Wörter speichern.",
+    msg_dict_dl: (n) => `Benutzerwörterbuch (${n} Einträge) heruntergeladen.`,
+    msg_json_fail: "JSON konnte nicht gelesen werden. Dateiformat prüfen.",
+    msg_badformat: "Ungültiges Wörterbuchformat (muss ein Objekt sein).",
+    msg_no_entries: "Keine gültigen Wörterbucheinträge gefunden.",
+    msg_import_confirm: (n) => `Du hast derzeit ${n} Wörterbucheinträge.\n\n\"OK\" = Zusammenführen (hinzufügen, gleiche Schlüssel überschreiben)\n\"Abbrechen\" = Ersetzen (vorhandene verwerfen, komplett ersetzen)`,
+    msg_import_done: (mode,a,u,t) => `Wörterbuch importiert (${mode}). Neu ${a} / Aktualisiert ${u} / Gesamt ${t}. \"Analysieren & Übersetzen\" klicken zum Anwenden.`,
+    mode_merge: "Zusammenführen", mode_replace: "Ersetzen",
+    msg_gen_first: "Zuerst den .lnc-Code erzeugen.",
+    msg_parse_first: "Zuerst Daten analysieren.",
+    msg_copy_ok: "Kopiert!",
+    msg_copy_fail: "Kopieren in Zwischenablage fehlgeschlagen. Bitte manuell kopieren.",
+    msg_lnc_saved: "club_names.lnc gespeichert.",
+    output_info_count: (l,c) => `Dieses Feld ist bearbeitbar. — ${l} Zeilen / ${c} Zeichen`,
+  },
+  fr: {
+    header_sub: "Générateur de code", badge_ai: "Traduction IA",
+    header_desc: "Collez les noms de clubs pour les traduire automatiquement en katakana japonais et générer le code .lnc",
+    step1_title: "Configuration & Saisie",
+    step1_desc: "Définissez votre clé API Gemini et collez les données des clubs",
+    label_apikey: "Clé API Gemini",
+    hint_apikey: "Gratuite sur Google AI Studio (aistudio.google.com). La clé est stockée dans le localStorage du navigateur.",
+    label_model: "Choix du modèle",
+    hint_model: "En cas d'erreur \"quota / limit: 0\", choisissez un autre modèle. De nombreux comptes ont désormais 0 quota gratuit pour 2.0-flash.",
+    label_rate: "Intervalle des requêtes (protection anti-limite)",
+    rate_safe: "Sûr (intervalle 13s / pour palier gratuit 5 RPM · recommandé)",
+    rate_std: "Standard (intervalle 5s / pour 15 RPM)",
+    rate_fast: "Rapide (intervalle 1,5s)",
+    rate_max: "Le plus rapide (intervalle 0,4s / pour palier payant)",
+    hint_rate: "Une erreur \"limit: 5 / retry in Xs\" signifie trop rapide. Le palier gratuit est en général 5/min, choisissez \"Sûr\". Les erreurs 429 sont réessayées automatiquement.",
+    label_screenshot: "📷 Extraire depuis une capture (optionnel)",
+    drop_text1: "Cliquez pour sélectionner une image, ou", drop_text2: "collez ici",
+    drop_sub: "L'IA extrait automatiquement les noms de clubs et les ID des captures FM (plusieurs possibles)",
+    btn_extract: "Extraire noms de clubs & ID des images", btn_clearimg: "Effacer les images",
+    label_clubdata: "Données des clubs (un par ligne)",
+    hint_clubdata: "Format : [Préfixe (optionnel)] [Nom du club] [Numéro ID] — les résultats de capture arrivent aussi ici",
+    btn_run: "Analyser & Traduire", btn_clear: "Effacer",
+    status_idle: "En attente — saisissez des données et cliquez sur \"Analyser & Traduire\"",
+    label_dictmgmt: "📚 Dictionnaire utilisateur",
+    btn_dictdl: "⬇ Télécharger le dictionnaire", btn_dictimport: "⬆ Importer un dictionnaire",
+    hint_dictmgmt: "Enregistrez/chargez le dictionnaire en JSON — pour migrer vers un autre PC, partager avec des amis ou sauvegarder.",
+    step2_title: "Vérifier & Modifier",
+    step2_desc: "Vérifiez et corrigez les traductions manuellement. Jaune = traduit par IA ou nouveau mot.",
+    stat_total: "Total des clubs", stat_dict: "Trouvés au dict.", stat_ai: "Traduits par IA", stat_user: "Dict. utilisateur",
+    empty_table: "Analysez les données à l'étape 1 et les résultats apparaîtront ici",
+    step3_title: "Sortie — code .lnc",
+    step3_desc: "Copiez le format .lnc généré et appliquez-le à Football Manager",
+    btn_gen: "Générer le code .lnc", btn_copy: "Copier dans le presse-papiers", btn_savelnc: "Enregistrer en fichier .lnc",
+    output_info: "Ce champ est modifiable. Modifiez avant de copier/enregistrer.",
+    th_id: "ID", th_prefix: "Préfixe", th_name: "Nom d'origine", th_trans: "Traduction (modifiable)",
+    btn_savedict: "💾 Enregistrer les modifs au dictionnaire", btn_resetdict: "🗑 Réinitialiser le dictionnaire",
+    new_tag: "NOUV",
+    install_text: "Vous pouvez installer cet outil comme une application.", install_btn: "Installer",
+    msg_need_data: "Veuillez saisir des données.",
+    msg_need_key: "Veuillez saisir votre clé API.",
+    msg_no_valid: "Aucune ligne valide trouvée. Vérifiez le format.\nExemple : KE wervik 539859",
+    msg_processing: (n) => `Traitement de ${n} éléments...`,
+    msg_translating: (a,b,p) => `Traduction IA... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `Limite atteinte… attente de ${s}s puis nouvel essai (${a}/${m})`,
+    msg_done: (t,d,a,u) => `Terminé ! ${t} traités. Dict.:${d} / IA:${a} / Utilisateur:${u}`,
+    msg_transfail: "⚠ Échec de la traduction",
+    msg_transerr: (p,e) => `Erreur de traduction (${p}) : ${e}`,
+    dict_count: (n) => n ? `(${n} entrées)` : "(vide)",
+    msg_no_img: "Aucune image chargée.",
+    msg_img_analyzing: (n) => `Analyse des images... (${n})`,
+    msg_extract_done: (n) => `Extrait ! ${n} lignes ajoutées à la saisie. Vérifiez, puis cliquez sur \"Analyser & Traduire\".`,
+    msg_extract_ok: (n) => `${n} lignes de clubs extraites. Veuillez vérifier/modifier dans le champ de saisie.`,
+    msg_img_pasted: "Image collée. Cliquez sur \"Extraire des images\".",
+    msg_extracterr: (e) => `Erreur d'extraction d'image : ${e}`,
+    msg_savedict: (n) => `${n} mots enregistrés dans le dictionnaire. Ils seront remplis automatiquement la prochaine fois.`,
+    msg_confirm_resetdict: "Supprimer tout le dictionnaire utilisateur ?",
+    msg_resetdict: "Dictionnaire utilisateur réinitialisé.",
+    msg_dict_empty: "Le dictionnaire utilisateur est vide. Enregistrez d'abord des mots.",
+    msg_dict_dl: (n) => `Dictionnaire utilisateur (${n} entrées) téléchargé.`,
+    msg_json_fail: "Échec de lecture du JSON. Vérifiez le format du fichier.",
+    msg_badformat: "Format de dictionnaire invalide (doit être un objet).",
+    msg_no_entries: "Aucune entrée de dictionnaire valide trouvée.",
+    msg_import_confirm: (n) => `Vous avez actuellement ${n} entrées de dictionnaire.\n\n\"OK\" = Fusionner (ajouter à l'existant, écraser les mêmes clés)\n\"Annuler\" = Remplacer (supprimer l'existant, tout remplacer)`,
+    msg_import_done: (mode,a,u,t) => `Dictionnaire importé (${mode}). Nouveaux ${a} / Mis à jour ${u} / Total ${t}. Cliquez sur \"Analyser & Traduire\" pour appliquer.`,
+    mode_merge: "Fusionner", mode_replace: "Remplacer",
+    msg_gen_first: "Générez d'abord le code .lnc.",
+    msg_parse_first: "Analysez d'abord les données.",
+    msg_copy_ok: "Copié !",
+    msg_copy_fail: "Échec de la copie. Veuillez copier manuellement.",
+    msg_lnc_saved: "club_names.lnc enregistré.",
+    output_info_count: (l,c) => `Ce champ est modifiable. — ${l} lignes / ${c} caractères`,
+  },
+  la: {
+    header_sub: "Generator Codicis", badge_ai: "Translatio AI",
+    header_desc: "Nomina sodalitatum insere ut automatice in katakana Iaponica vertantur et codex .lnc generetur",
+    step1_title: "Praeparatio & Initium",
+    step1_desc: "Clavem API Gemini constitue et data sodalitatum insere",
+    label_apikey: "Clavis API Gemini",
+    hint_apikey: "Gratis apud Google AI Studio (aistudio.google.com) obtinetur. Clavis in localStorage navigatri servatur.",
+    label_model: "Delectus Exemplaris",
+    hint_model: "Si error \"quota / limit: 0\" apparet, aliud exemplar elige. Multae rationes nunc 0 copiam gratuitam pro 2.0-flash habent.",
+    label_rate: "Intervallum Petitionum (tutela limitis)",
+    rate_safe: "Tutum (intervallum 13s / pro gradu gratuito 5 RPM · commendatum)",
+    rate_std: "Vulgare (intervallum 5s / pro 15 RPM)",
+    rate_fast: "Celer (intervallum 1.5s)",
+    rate_max: "Celerrimum (intervallum 0.4s / pro gradu soluto)",
+    hint_rate: "Error \"limit: 5 / retry in Xs\" significat nimis celerem. Gradus gratuitus plerumque 5/minutum est, ergo \"Tutum\" elige. Errores 429 automatice retemptantur.",
+    label_screenshot: "📷 Ex imagine extrahere (optio)",
+    drop_text1: "Preme ut imaginem eligas, vel hic", drop_text2: "agglutina",
+    drop_sub: "AI nomina sodalitatum et ID ex imaginibus FM automatice extrahit (plures licet)",
+    btn_extract: "Nomina & ID ex imaginibus extrahere", btn_clearimg: "Imagines delere",
+    label_clubdata: "Data sodalitatum (unum per lineam)",
+    hint_clubdata: "Forma: [Praefixum (optio)] [Nomen sodalitatis] [Numerus ID] — eventus imaginum etiam huc veniunt",
+    btn_run: "Resolvere & Vertere", btn_clear: "Delere",
+    status_idle: "Exspectans — data insere et \"Resolvere & Vertere\" preme",
+    label_dictmgmt: "📚 Administratio Glossarii",
+    btn_dictdl: "⬇ Glossarium demittere", btn_dictimport: "⬆ Glossarium importare",
+    hint_dictmgmt: "Glossarium ut JSON serva/onera — ad migrationem in alium computatrum, communicationem cum amicis, vel exemplar.",
+    step2_title: "Recensere & Emendare",
+    step2_desc: "Translationes recense et manu emenda. Flavum = ab AI versum vel novum verbum.",
+    stat_total: "Sodalitates totae", stat_dict: "Glossarii inventa", stat_ai: "Ab AI versa", stat_user: "Glossarium usoris",
+    empty_table: "Data in Gradu 1 resolve, et eventus hic apparebunt",
+    step3_title: "Exitus — codex .lnc",
+    step3_desc: "Formam .lnc generatam copia et ad Football Manager applica",
+    btn_gen: "Codicem .lnc generare", btn_copy: "In tabulam copiare", btn_savelnc: "Ut .lnc servare",
+    output_info: "Hic campus emendari potest. Emenda antequam copies/serves.",
+    th_id: "ID", th_prefix: "Praefixum", th_name: "Nomen originale", th_trans: "Translatio (emendabilis)",
+    btn_savedict: "💾 Emendata in glossario servare", btn_resetdict: "🗑 Glossarium usoris renovare",
+    new_tag: "NOVUM",
+    install_text: "Hoc instrumentum ut applicationem instituere potes.", install_btn: "Instituere",
+    msg_need_data: "Quaeso data insere.",
+    msg_need_key: "Quaeso clavem API insere.",
+    msg_no_valid: "Nullae lineae validae inventae. Formam inspice.\nExemplum: KE wervik 539859",
+    msg_processing: (n) => `${n} elementa tractantur...`,
+    msg_translating: (a,b,p) => `Translatio AI... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `Limes attactus… ${s}s exspecta, deinde retempta (${a}/${m})`,
+    msg_done: (t,d,a,u) => `Perfectum! ${t} tractata. Gloss.:${d} / AI:${a} / Usor:${u}`,
+    msg_transfail: "⚠ Translatio defecit",
+    msg_transerr: (p,e) => `Error translationis (${p}): ${e}`,
+    dict_count: (n) => n ? `(${n} inscriptiones)` : "(vacuum)",
+    msg_no_img: "Nulla imago onerata.",
+    msg_img_analyzing: (n) => `Imagines analyzantur... (${n})`,
+    msg_extract_done: (n) => `Extractum! ${n} lineae ad initium additae. Recense, deinde \"Resolvere & Vertere\" preme.`,
+    msg_extract_ok: (n) => `${n} lineae sodalitatum extractae. Quaeso in campo initii recense/emenda.`,
+    msg_img_pasted: "Imago agglutinata. \"Ex imaginibus extrahere\" preme.",
+    msg_extracterr: (e) => `Error extractionis imaginis: ${e}`,
+    msg_savedict: (n) => `${n} verba in glossario servata. Proxime automatice implebuntur.`,
+    msg_confirm_resetdict: "Totum glossarium usoris delere?",
+    msg_resetdict: "Glossarium usoris renovatum.",
+    msg_dict_empty: "Glossarium usoris vacuum est. Prius verba serva.",
+    msg_dict_dl: (n) => `Glossarium usoris (${n} inscriptiones) demissum.`,
+    msg_json_fail: "JSON legi non potuit. Formam fasciculi inspice.",
+    msg_badformat: "Forma glossarii invalida (objectum esse debet).",
+    msg_no_entries: "Nullae inscriptiones glossarii validae inventae.",
+    msg_import_confirm: (n) => `Nunc ${n} inscriptiones glossarii habes.\n\n\"OK\" = Coniungere (addere, easdem claves superscribere)\n\"Cancellare\" = Substituere (existentia abicere, omnia substituere)`,
+    msg_import_done: (mode,a,u,t) => `Glossarium importatum (${mode}). Nova ${a} / Renovata ${u} / Summa ${t}. \"Resolvere & Vertere\" preme ut applices.`,
+    mode_merge: "Coniungere", mode_replace: "Substituere",
+    msg_gen_first: "Prius codicem .lnc genera.",
+    msg_parse_first: "Prius data resolve.",
+    msg_copy_ok: "Copiatum!",
+    msg_copy_fail: "Copia in tabulam defecit. Quaeso manu copia.",
+    msg_lnc_saved: "club_names.lnc servatum.",
+    output_info_count: (l,c) => `Hic campus emendari potest. — ${l} lineae / ${c} litterae`,
+  },
+  he: {
+    header_sub: "מחולל קוד", badge_ai: "תרגום AI",
+    header_desc: "הדביקו שמות מועדונים לתרגום אוטומטי לקטקאנה יפנית וליצירת קוד ‎.lnc",
+    step1_title: "הגדרה וקלט",
+    step1_desc: "הגדירו את מפתח ה-API של Gemini והדביקו נתוני מועדונים",
+    label_apikey: "מפתח API של Gemini",
+    hint_apikey: "ניתן לקבל בחינם ב-Google AI Studio ‏(aistudio.google.com). המפתח נשמר ב-localStorage של הדפדפן.",
+    label_model: "בחירת מודל",
+    hint_model: "אם מופיעה שגיאת \"quota / limit: 0\", בחרו מודל אחר. בחשבונות רבים מכסת החינם ל-2.0-flash היא 0.",
+    label_rate: "מרווח בקשות (הגנה מפני הגבלת קצב)",
+    rate_safe: "בטוח (מרווח 13 שניות / למכסת חינם 5 RPM · מומלץ)",
+    rate_std: "רגיל (מרווח 5 שניות / ל-15 RPM)",
+    rate_fast: "מהיר (מרווח 1.5 שניות)",
+    rate_max: "המהיר ביותר (מרווח 0.4 שניות / לתוכנית בתשלום)",
+    hint_rate: "שגיאת \"limit: 5 / retry in Xs\" אומרת שמהר מדי. מכסת החינם היא בדרך כלל 5 לדקה, אז בחרו \"בטוח\". שגיאות 429 ינוסו שוב אוטומטית.",
+    label_screenshot: "📷 חילוץ מצילום מסך (אופציונלי)",
+    drop_text1: "לחצו לבחירת תמונה, או", drop_text2: "הדביקו כאן",
+    drop_sub: "ה-AI מחלץ אוטומטית שמות מועדונים ומזהים מצילומי מסך של FM (אפשר כמה)",
+    btn_extract: "חלץ שמות מועדונים ומזהים מתמונות", btn_clearimg: "נקה תמונות",
+    label_clubdata: "נתוני מועדונים (מועדון בכל שורה)",
+    hint_clubdata: "פורמט: [קידומת (אופציונלי)] [שם מועדון] [מספר מזהה] — תוצאות צילום המסך נכנסות גם לכאן",
+    btn_run: "נתח ותרגם", btn_clear: "נקה",
+    status_idle: "ממתין — הזינו נתונים ולחצו \"נתח ותרגם\"",
+    label_dictmgmt: "📚 ניהול מילון משתמש",
+    btn_dictdl: "⬇ הורד מילון", btn_dictimport: "⬆ ייבא מילון",
+    hint_dictmgmt: "שמרו/טענו את המילון כ-JSON — להעברה למחשב אחר, שיתוף עם חברים או גיבוי.",
+    step2_title: "סקירה ועריכה",
+    step2_desc: "סקרו ותקנו את התרגומים ידנית. צהוב = תורגם ב-AI או מילה חדשה.",
+    stat_total: "סך המועדונים", stat_dict: "התאמות מילון", stat_ai: "תורגם ב-AI", stat_user: "מילון משתמש",
+    empty_table: "נתחו נתונים בשלב 1, והתוצאות יופיעו כאן",
+    step3_title: "פלט — קוד ‎.lnc",
+    step3_desc: "העתיקו את פורמט ה-‎.lnc שנוצר והחילו אותו ב-Football Manager",
+    btn_gen: "צור קוד ‎.lnc", btn_copy: "העתק ללוח", btn_savelnc: "שמור כקובץ ‎.lnc",
+    output_info: "השדה ניתן לעריכה. ערכו לפני העתקה/שמירה.",
+    th_id: "מזהה", th_prefix: "קידומת", th_name: "שם מקורי", th_trans: "תרגום (ניתן לעריכה)",
+    btn_savedict: "💾 שמור עריכות למילון", btn_resetdict: "🗑 אפס מילון משתמש",
+    new_tag: "חדש",
+    install_text: "אפשר להתקין כלי זה כאפליקציה.", install_btn: "התקן",
+    msg_need_data: "אנא הזינו נתונים.",
+    msg_need_key: "אנא הזינו מפתח API.",
+    msg_no_valid: "לא נמצאו שורות תקינות. בדקו את הפורמט.\nדוגמה: KE wervik 539859",
+    msg_processing: (n) => `מעבד ${n} פריטים...`,
+    msg_translating: (a,b,p) => `מתרגם ב-AI... (${a}/${b}) — ${p}`,
+    msg_ratelimit: (s,a,m) => `מוגבל בקצב… ממתין ${s} שניות ומנסה שוב (${a}/${m})`,
+    msg_done: (t,d,a,u) => `הושלם! עובדו ${t}. מילון:${d} / AI:${a} / משתמש:${u}`,
+    msg_transfail: "⚠ התרגום נכשל",
+    msg_transerr: (p,e) => `שגיאת תרגום (${p}): ${e}`,
+    dict_count: (n) => n ? `(${n} ערכים)` : "(ריק)",
+    msg_no_img: "לא נטענה תמונה.",
+    msg_img_analyzing: (n) => `מנתח תמונות... (${n})`,
+    msg_extract_done: (n) => `חולץ! נוספו ${n} שורות לקלט. סקרו, ואז לחצו \"נתח ותרגם\".`,
+    msg_extract_ok: (n) => `חולצו ${n} שורות מועדונים. אנא סקרו/ערכו בשדה הקלט.`,
+    msg_img_pasted: "התמונה הודבקה. לחצו \"חלץ מתמונות\".",
+    msg_extracterr: (e) => `שגיאת חילוץ תמונה: ${e}`,
+    msg_savedict: (n) => `${n} מילים נשמרו למילון. בפעם הבאה ימולאו אוטומטית.`,
+    msg_confirm_resetdict: "למחוק את כל מילון המשתמש?",
+    msg_resetdict: "מילון המשתמש אופס.",
+    msg_dict_empty: "מילון המשתמש ריק. שמרו תחילה מילים.",
+    msg_dict_dl: (n) => `מילון המשתמש (${n} ערכים) הורד.`,
+    msg_json_fail: "קריאת ה-JSON נכשלה. בדקו את פורמט הקובץ.",
+    msg_badformat: "פורמט מילון לא תקין (חייב להיות אובייקט).",
+    msg_no_entries: "לא נמצאו ערכי מילון תקינים.",
+    msg_import_confirm: (n) => `יש לכם כעת ${n} ערכי מילון.\n\n\"אישור\" = מיזוג (הוספה לקיים, דריסת מפתחות זהים)\n\"ביטול\" = החלפה (מחיקת הקיים, החלפה מלאה)`,
+    msg_import_done: (mode,a,u,t) => `המילון יובא (${mode}). חדשים ${a} / עודכנו ${u} / סך הכול ${t}. לחצו \"נתח ותרגם\" להחלה.`,
+    mode_merge: "מיזוג", mode_replace: "החלפה",
+    msg_gen_first: "צרו תחילה את קוד ה-‎.lnc.",
+    msg_parse_first: "נתחו תחילה את הנתונים.",
+    msg_copy_ok: "הועתק!",
+    msg_copy_fail: "ההעתקה ללוח נכשלה. אנא העתיקו ידנית.",
+    msg_lnc_saved: "‏club_names.lnc נשמר.",
+    output_info_count: (l,c) => `השדה ניתן לעריכה. — ${l} שורות / ${c} תווים`,
+  }
+};
+
+// 文言ヘルパー（多言語対応）
+const RTL_LANGS = ['he'];
+let LANG = localStorage.getItem('fm_lang');
+if (!LANG) {
+  const nav = (navigator.language || 'en').toLowerCase();
+  if (nav.startsWith('ja')) LANG = 'ja';
+  else if (nav.startsWith('zh')) LANG = 'zh';
+  else if (nav.startsWith('ko')) LANG = 'ko';
+  else if (nav.startsWith('he') || nav.startsWith('iw')) LANG = 'he';
+  else if (nav.startsWith('de')) LANG = 'de';
+  else if (nav.startsWith('fr')) LANG = 'fr';
+  else LANG = 'en';
+}
+if (!I18N[LANG]) LANG = 'en';
+
+function t(key, ...args) {
+  const v = (I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? I18N.ja[key];
+  return typeof v === 'function' ? v(...args) : v;
+}
+
+function setLang(lang) {
+  if (!I18N[lang]) return;
+  LANG = lang;
+  localStorage.setItem('fm_lang', lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
+  // 静的テキストを差し替え
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = I18N[lang][key];
+    if (typeof val === 'string') el.textContent = val;
+  });
+  // 言語セレクターの選択状態
+  const sel = document.getElementById('lang-select');
+  if (sel && sel.value !== lang) sel.value = lang;
+  // 動的な部分を更新
+  updateDictCount();
+  updateOutputInfo();
+  if (typeof tableData !== 'undefined' && tableData.length) renderTable();
+}
+
+// ============================
+// 組み込み辞書
+// ============================
+const BUILTIN_DICT = {
+  "kalken": "カルケン", "homme": "ハム", "hamme": "ハム",
+  "pays": "ペイ", "vert": "ヴェール", "ostiches": "オスティシュ",
+  "ath": "アト", "harre": "アール", "manhay": "マンハイ",
+  "londerzeel": "ロンデルゼール", "next": "ネクスト",
+  "laakdal": "ラークダール", "geel": "ヘール", "wanze": "ワンズ",
+  "bas": "バ", "oha": "ゾハ", "wavelgem": "ウェフェルヘム",
+  "wevelgem": "ウェフェルヘム", "city": "シティ", "onhaye": "オネー",
+  "wellen": "ウェレン", "wervik": "ウェルヴィク"
+};
+
+// FM プレフィックス（翻訳スキップ）
+const PREFIXES = new Set([
+  "FC","KE","VW","RES","SK","VV","ASV","CS","KVK","SV","AC","AS","1.","SC","FK","NK",
+  "BK","HB","IF","GIF","IFK","ÍF","FF","BIF","AIF","MIF","GIF","VfB","VfL","TSG",
+  "SpVgg","FSV","BSC","SGE","SSV","DSC","MSV","FKF","TuS","TuRa","SuS","RasenBallsport",
+  "RB","RC","RS","RSC","US","USM","UGS","UA","CF","UD","SD","CD","RM","RF","GD","SL",
+  "OM","OL","SM","PSG","SS","AD","AM","CA","CR","CE","CP","PFC","PAOK","OFI","AEK",
+  "AOK","PAO","OAK","AO","GS","CSD","LFC","AFC","PORTSMOUTH","WFC","BWFC","NFFC","THFC",
+  "MUFC","MCFC","LCFC","CFC","AVFC","EFC","WBA","QPR","MK","HFC","HTAFC","BCFC","SWFC",
+  "WWFC","BRFC","BHAFC","LUFC","NCFC","ITFC","SCFC","CCFC","DRFC","TRFC","DCFC","POSH"
+]);
+
+// ============================
+// ユーザー辞書 (localStorage)
+// ============================
+function getUserDict() {
+  try { return JSON.parse(localStorage.getItem('fm_user_dict') || '{}'); }
+  catch { return {}; }
+}
+
+function saveUserDict(dict) {
+  localStorage.setItem('fm_user_dict', JSON.stringify(dict));
+  updateDictCount();
+}
+
+// 辞書件数の表示更新
+function updateDictCount() {
+  const el = document.getElementById('dict-count');
+  if (!el) return;
+  const count = Object.keys(getUserDict()).length;
+  el.textContent = t('dict_count', count);
+}
+
+// APIキー保存
+function getApiKey() {
+  const v = document.getElementById('api-key').value.trim();
+  if (v) localStorage.setItem('fm_api_key', v);
+  return v || localStorage.getItem('fm_api_key') || '';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('fm_api_key');
+  if (saved) document.getElementById('api-key').value = saved;
+  const savedModel = localStorage.getItem('fm_model');
+  if (savedModel) {
+    const sel = document.getElementById('model-select');
+    if ([...sel.options].some(o => o.value === savedModel)) sel.value = savedModel;
+  }
+  document.getElementById('model-select').addEventListener('change', e => {
+    localStorage.setItem('fm_model', e.target.value);
+  });
+  const savedGap = localStorage.getItem('fm_rate_gap');
+  if (savedGap) {
+    const g = document.getElementById('rate-gap');
+    if ([...g.options].some(o => o.value === savedGap)) g.value = savedGap;
+  }
+  document.getElementById('rate-gap').addEventListener('change', e => {
+    localStorage.setItem('fm_rate_gap', e.target.value);
+  });
+  // 初期言語を適用
+  const langSel = document.getElementById('lang-select');
+  if (langSel) langSel.value = LANG;
+  setLang(LANG);
+  updateDictCount();
+});
+
+function toggleApiVis() {
+  const el = document.getElementById('api-key');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// ============================
+// パース
+// ============================
+function parseLine(line) {
+  line = line.trim();
+  if (!line) return null;
+
+  // 末尾のIDを抽出（1桁以上の数字）
+  const idMatch = line.match(/\s+(\d+)$/);
+  if (!idMatch) return null;
+  const id = idMatch[1];
+  const rest = line.slice(0, line.length - idMatch[0].length).trim();
+  if (!rest) return null; // クラブ名が空ならスキップ
+
+  // プレフィックス検出（先頭から連続する「大文字略語」または「数字(創設年など)」をまとめて取得）
+  const words = rest.split(/\s+/);
+  const prefixWords = [];
+  let idx = 0;
+  let hasAcronym = false; // 略語が1つ以上見つかったか
+
+  while (idx < words.length - 1) { // 最後の1語はクラブ名として必ず残す
+    const w = words[idx];
+    // プレフィックス判定:
+    //  (a) 固定リストに載っている大文字略語
+    //  (b) 2文字以上で英字を含み、小文字を含まない（= 大文字略語、数字・ドット混じり可）
+    //  (c) 純粋な数字（創設年など）— ただし直前までに略語があった場合のみ取り込む
+    const isListed = PREFIXES.has(w.toUpperCase());
+    const isUpperAcronym = w.length >= 2 && /[A-Z]/.test(w) && !/[a-z]/.test(w);
+    const isPureNumber = /^\d+$/.test(w);
+
+    if (isListed || isUpperAcronym) {
+      prefixWords.push(w.toUpperCase());
+      hasAcronym = true;
+      idx++;
+    } else if (isPureNumber && hasAcronym) {
+      // 略語のあとに続く数字（例: RFC 1924）はプレフィックスに含める
+      prefixWords.push(w);
+      idx++;
+    } else {
+      break;
+    }
+  }
+
+  const prefix = prefixWords.join(' ');
+  const nameWords = words.slice(idx);
+
+  return { id, prefix, originalName: nameWords.join(' '), nameWords };
+}
+
+// ============================
+// 辞書ルックアップ
+// ============================
+function lookupWord(word, userDict) {
+  const w = word.toLowerCase();
+  if (userDict[w]) return { text: userDict[w], source: 'user' };
+  if (BUILTIN_DICT[w]) return { text: BUILTIN_DICT[w], source: 'dict' };
+  return null;
+}
+
+function lookupPhrase(words, userDict) {
+  // まず全単語を個別に辞書チェック
+  const results = words.map(w => lookupWord(w, userDict));
+  const allFound = results.every(r => r !== null);
+  if (allFound) {
+    const sourceSet = new Set(results.map(r => r.source));
+    const source = sourceSet.has('user') ? 'user' : 'dict';
+    return { text: results.map(r => r.text).join(' '), source, missing: [] };
+  }
+  // 一部見つからないワード
+  const missing = words.filter((_, i) => !results[i]);
+  const found = words.map((w, i) => results[i] ? results[i].text : null);
+  return { text: null, source: null, missing, partialFound: found };
+}
+
+// ============================
+// スクリーンショット読み込み
+// ============================
+let loadedImages = []; // { dataUrl, mimeType, base64 }
+
+function handleFileSelect(event) {
+  const files = Array.from(event.target.files || []);
+  files.forEach(addImageFile);
+  event.target.value = '';
+}
+
+function addImageFile(file) {
+  if (!file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1];
+    loadedImages.push({ dataUrl, mimeType: file.type, base64 });
+    renderImagePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderImagePreview() {
+  const area = document.getElementById('img-preview');
+  area.innerHTML = loadedImages.map((img, i) =>
+    `<div class="img-thumb">
+       <img src="${img.dataUrl}" alt="screenshot ${i+1}">
+       <button class="remove" onclick="removeImage(${i})" title="削除">×</button>
+     </div>`
+  ).join('');
+  document.getElementById('extract-row').style.display = loadedImages.length ? 'flex' : 'none';
+}
+
+function removeImage(i) {
+  loadedImages.splice(i, 1);
+  renderImagePreview();
+}
+
+function clearImages() {
+  loadedImages = [];
+  renderImagePreview();
+}
+
+// ドラッグ&ドロップ + クリップボード貼り付け
+window.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('drop-zone');
+  if (dz) {
+    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); dz.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); dz.classList.remove('dragover');
+    }));
+    dz.addEventListener('drop', e => {
+      Array.from(e.dataTransfer.files || []).forEach(addImageFile);
+    });
+  }
+  // Ctrl+V で画像貼り付け
+  window.addEventListener('paste', e => {
+    const items = Array.from(e.clipboardData?.items || []);
+    let pasted = false;
+    items.forEach(item => {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { addImageFile(file); pasted = true; }
+      }
+    });
+    if (pasted) showAlert('success', t('msg_img_pasted'));
+  });
+});
+
+// Geminiで画像からクラブ名+IDを抽出
+async function extractFromImages() {
+  if (!loadedImages.length) { showAlert('error', t('msg_no_img')); return; }
+  const apiKey = getApiKey();
+  if (!apiKey) { showAlert('error', t('msg_need_key')); return; }
+
+  clearAlert();
+  setStatus('active', t('msg_img_analyzing', loadedImages.length));
+
+  const extractPrompt = `この画像はFootball Manager（サッカーゲーム）の画面のスクリーンショットです。
+画像に表示されているクラブ名と、それに対応するID番号（数字）を読み取ってください。
+出力ルール:
+- 1クラブにつき1行で出力してください。
+- 形式は「クラブ名 ID番号」（クラブ名のあとに半角スペース、最後にID数字）。
+- ID番号が見当たらない場合はクラブ名だけを出力してください。
+- 説明文、見出し、番号付けは一切不要です。データ行のみを出力してください。
+- クラブ名は画像に表示されている原語（英語/現地語）のまま、変換せずに出力してください。`;
+
+  try {
+    const model = document.getElementById('model-select')?.value || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const parts = [{ text: extractPrompt }];
+    loadedImages.forEach(img => {
+      parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+    });
+    const reqBody = JSON.stringify({ contents: [{ role: 'user', parts }] });
+
+    const maxRetries = 4;
+    let text = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: reqBody
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (!text) throw new Error('画像から有効なデータを抽出できませんでした');
+        break;
+      }
+
+      const err = await res.json().catch(() => ({}));
+      const msg = err.error?.message || `HTTP ${res.status}`;
+
+      // 429（レート制限）なら待ってリトライ
+      if (res.status === 429 && attempt < maxRetries) {
+        const m = msg.match(/retry in ([\d.]+)s/i);
+        let waitMs = m ? Math.ceil(parseFloat(m[1]) * 1000) + 500 : (attempt + 1) * 4000;
+        if (waitMs > 60000) waitMs = 60000;
+        setStatus('active', t('msg_ratelimit', Math.ceil(waitMs/1000), attempt + 1, maxRetries));
+        await sleep(waitMs);
+        continue;
+      }
+      throw new Error(msg);
+    }
+
+    // 既存のテキストエリアに追記
+    const ta = document.getElementById('raw-input');
+    const existing = ta.value.trim();
+    ta.value = existing ? existing + '\n' + text : text;
+
+    const lineCount = text.split('\n').filter(l => l.trim()).length;
+    setStatus('done', t('msg_extract_done', lineCount));
+    showAlert('success', t('msg_extract_ok', lineCount));
+  } catch (e) {
+    setStatus('error', t('msg_extracterr', e.message));
+    showAlert('error', t('msg_extracterr', e.message));
+  }
+}
+
+// ============================
+// Gemini API 呼び出し
+// ============================
+async function translateWithGemini(phrase, apiKey) {
+  const model = document.getElementById('model-select')?.value || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const systemPrompt = `あなたはフットボールデータベースの翻訳専門家です。ヨーロッパのクラブ名を自然な日本語カタカナに音訳してください。
+ルール:
+- FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳しないでください。出力から省略してください。
+- 地名とチーム名詞のみを正確で標準的な日本語カタカナに変換してください。
+- 複数の単語は半角スペース1つで区切ってください（例: "Wanze Bas Oha" → "ワンズ バゾハ"）。
+- 散文、考察、フォーマットは一切出力しないでください。翻訳されたカタカナのみを出力してください。`;
+
+  const body = {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: `${systemPrompt}\n\n翻訳してください: ${phrase}` }]
+      }
+    ]
+  };
+
+  const maxRetries = 4;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!text) throw new Error('Gemini から空のレスポンスが返されました');
+      return text;
+    }
+
+    const err = await res.json().catch(() => ({}));
+    const msg = err.error?.message || `HTTP ${res.status}`;
+
+    // 429（レート制限）なら待ってリトライ
+    if (res.status === 429 && attempt < maxRetries) {
+      // エラーメッセージから "retry in X.Xs" を読み取る。無ければ指数バックオフ
+      const m = msg.match(/retry in ([\d.]+)s/i);
+      let waitMs = m ? Math.ceil(parseFloat(m[1]) * 1000) + 500 : (attempt + 1) * 4000;
+      if (waitMs > 60000) waitMs = 60000;
+      setStatus('active', t('msg_ratelimit', Math.ceil(waitMs/1000), attempt + 1, maxRetries));
+      await sleep(waitMs);
+      continue;
+    }
+
+    throw new Error(msg);
+  }
+  throw new Error('リトライ上限に達しました（レート制限）');
+}
+
+// ============================
+// メイン処理
+// ============================
+let tableData = [];
+
+async function runParse() {
+  const raw = document.getElementById('raw-input').value.trim();
+  if (!raw) { showAlert('error', t('msg_need_data')); return; }
+
+  const apiKey = getApiKey();
+  if (!apiKey) { showAlert('error', t('msg_need_key')); return; }
+
+  clearAlert();
+  tableData = [];
+
+  const lines = raw.split('\n').filter(l => l.trim());
+  const parsed = lines.map(parseLine).filter(Boolean);
+
+  if (!parsed.length) {
+    showAlert('error', t('msg_no_valid'));
+    return;
+  }
+
+  setStatus('active', t('msg_processing', parsed.length));
+
+  const userDict = getUserDict();
+  let statDict = 0, statAi = 0, statUser = 0;
+
+  // AIに一括送信するキューを作成
+  const aiQueue = []; // { index, phrase }
+
+  for (let i = 0; i < parsed.length; i++) {
+    const p = parsed[i];
+    const lookup = lookupPhrase(p.nameWords, userDict);
+
+    if (lookup.text) {
+      tableData.push({
+        ...p,
+        translated: lookup.text,
+        isNew: false,
+        source: lookup.source
+      });
+      if (lookup.source === 'user') statUser++;
+      else statDict++;
+    } else {
+      // AIに投げる（tableData上のインデックスを記録）
+      const tableDataIndex = tableData.length;
+      tableData.push({
+        ...p,
+        translated: '',
+        isNew: true,
+        source: 'ai'
+      });
+      aiQueue.push({ tableDataIndex, phrase: p.originalName });
+    }
+  }
+
+  // AI一括翻訳
+  if (aiQueue.length > 0) {
+    setStatus('active', t('msg_translating', 0, aiQueue.length, ''));
+    for (let qi = 0; qi < aiQueue.length; qi++) {
+      const q = aiQueue[qi];
+      setStatus('active', t('msg_translating', qi + 1, aiQueue.length, q.phrase));
+      try {
+        const result = await translateWithGemini(q.phrase, apiKey);
+        tableData[q.tableDataIndex].translated = result;
+        statAi++;
+      } catch (e) {
+        tableData[q.tableDataIndex].translated = t('msg_transfail');
+        tableData[q.tableDataIndex].error = e.message;
+        showAlert('error', t('msg_transerr', q.phrase, e.message));
+      }
+      // レート制限対策（設定された間隔を待つ）
+      const gapMs = parseInt(document.getElementById('rate-gap')?.value || '12000', 10);
+      if (qi < aiQueue.length - 1) await sleep(gapMs);
+    }
+  }
+
+  // 統計更新
+  document.getElementById('stat-total').textContent = tableData.length;
+  document.getElementById('stat-dict').textContent = statDict;
+  document.getElementById('stat-ai').textContent = statAi;
+  document.getElementById('stat-user').textContent = statUser;
+  document.getElementById('stats-area').style.display = 'flex';
+
+  renderTable();
+  setStatus('done', t('msg_done', tableData.length, statDict, statAi, statUser));
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================
+// テーブル描画
+// ============================
+function renderTable() {
+  const area = document.getElementById('table-area');
+  if (!tableData.length) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div>${t('empty_table')}</div></div>`;
+    return;
+  }
+
+  let rows = tableData.map((d, i) => {
+    const isNew = d.isNew;
+    const newTag = isNew ? `<span class="new-tag">${t('new_tag')}</span>` : '';
+    const inputClass = isNew ? 'trans-input is-new' : 'trans-input';
+    const errTitle = d.error ? `title="${d.error}"` : '';
+    return `<tr>
+      <td class="id-cell">${d.id}</td>
+      <td class="prefix-cell">${d.prefix || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td class="name-cell">${escHtml(d.originalName)}${newTag}</td>
+      <td><input class="${inputClass}" ${errTitle} value="${escHtml(d.translated)}" data-idx="${i}" onchange="onTransEdit(this, ${i})" oninput="onTransEdit(this, ${i})"></td>
+    </tr>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>${t('th_id')}</th>
+            <th>${t('th_prefix')}</th>
+            <th>${t('th_name')}</th>
+            <th>${t('th_trans')}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="saveUserDictFromTable()" style="font-size:12px;">
+        ${t('btn_savedict')}
+      </button>
+      <button class="btn btn-secondary" onclick="downloadUserDict()" style="font-size:12px;">
+        ${t('btn_dictdl')}
+      </button>
+      <button class="btn btn-secondary" onclick="document.getElementById('dict-import').click()" style="font-size:12px;">
+        ${t('btn_dictimport')}
+      </button>
+      <input type="file" id="dict-import" accept=".json,application/json" style="display:none;" onchange="importUserDict(event)">
+      <button class="btn btn-secondary" onclick="clearUserDict()" style="font-size:12px;color:var(--error);border-color:rgba(255,77,109,0.3);">
+        ${t('btn_resetdict')}
+      </button>
+    </div>
+  `;
+}
+
+function onTransEdit(input, idx) {
+  tableData[idx].translated = input.value;
+  tableData[idx].edited = true;
+}
+
+function saveUserDictFromTable() {
+  const userDict = getUserDict();
+  let count = 0;
+  tableData.forEach(d => {
+    if (d.edited && d.translated && d.nameWords) {
+      // 単語ごとに保存（完全フレーズも保存）
+      const key = d.originalName.toLowerCase();
+      userDict[key] = d.translated;
+      count++;
+    }
+  });
+  saveUserDict(userDict);
+  showAlert('success', t('msg_savedict', count));
+}
+
+function clearUserDict() {
+  if (confirm(t('msg_confirm_resetdict'))) {
+    localStorage.removeItem('fm_user_dict');
+    updateDictCount();
+    showAlert('success', t('msg_resetdict'));
+  }
+}
+
+// ユーザー辞書をJSONでダウンロード
+function downloadUserDict() {
+  const dict = getUserDict();
+  const count = Object.keys(dict).length;
+  if (count === 0) {
+    showAlert('error', t('msg_dict_empty'));
+    return;
+  }
+  const json = JSON.stringify(dict, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fm_user_dict.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showAlert('success', t('msg_dict_dl', count));
+}
+
+// JSONファイルからユーザー辞書をインポート
+function importUserDict(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    let imported;
+    try {
+      imported = JSON.parse(e.target.result);
+    } catch {
+      showAlert('error', t('msg_json_fail'));
+      return;
+    }
+    // 形式チェック: { "key": "value", ... } のフラットなオブジェクトのみ受け付ける
+    if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
+      showAlert('error', t('msg_badformat'));
+      return;
+    }
+    const entries = Object.entries(imported).filter(([k, v]) => typeof k === 'string' && typeof v === 'string');
+    if (entries.length === 0) {
+      showAlert('error', t('msg_no_entries'));
+      return;
+    }
+
+    const existing = getUserDict();
+    const existingCount = Object.keys(existing).length;
+
+    let mode = 'merge';
+    if (existingCount > 0) {
+      mode = confirm(t('msg_import_confirm', existingCount)) ? 'merge' : 'replace';
+    }
+
+    const merged = mode === 'merge' ? { ...existing } : {};
+    let added = 0, updated = 0;
+    entries.forEach(([k, v]) => {
+      const key = k.toLowerCase();
+      if (merged[key] !== undefined && merged[key] !== v) updated++;
+      else if (merged[key] === undefined) added++;
+      merged[key] = v;
+    });
+
+    saveUserDict(merged);
+    const total = Object.keys(merged).length;
+    showAlert('success',
+      t('msg_import_done', mode === 'merge' ? t('mode_merge') : t('mode_replace'), added, updated, total)
+    );
+  };
+  reader.readAsText(file);
+}
+
+// ============================
+// .lnc 生成
+// ============================
+function generateLnc() {
+  if (!tableData.length) {
+    showAlert('error', t('msg_parse_first'));
+    return;
+  }
+
+  const lines = [];
+  lines.push('; FM .lnc コード — FM .lnc Code Generator で生成');
+  lines.push('; Generated by FM.LNC GEN');
+  lines.push('');
+
+  tableData.forEach(d => {
+    const trans = d.translated.trim();
+    if (!trans) return;
+    const label = d.prefix ? `${d.prefix} ${trans}` : trans;
+    lines.push(`"CLUB_LONG_NAME_CHANGE" ${d.id} "${label}"`);
+    lines.push(`"CLUB_SHORT_NAME_CHANGE" ${d.id} "${label}"`);
+  });
+
+  document.getElementById('output').value = lines.join('\n');
+  updateOutputInfo();
+}
+
+// 出力欄の行数・文字数を表示
+function updateOutputInfo() {
+  const text = document.getElementById('output').value;
+  const info = document.getElementById('output-info');
+  if (!text.trim()) {
+    info.textContent = t('output_info');
+    return;
+  }
+  const lines = text.split('\n').filter(l => l.trim() && !l.trim().startsWith(';')).length;
+  info.textContent = t('output_info_count', lines, text.length);
+}
+
+// .lncファイルとしてダウンロード
+function downloadLnc() {
+  const text = document.getElementById('output').value;
+  if (!text.trim()) { showAlert('error', t('msg_gen_first')); return; }
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'club_names.lnc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showAlert('success', t('msg_lnc_saved'));
+}
+
+async function copyOutput() {
+  const text = document.getElementById('output').value;
+  if (!text) { showAlert('error', t('msg_gen_first')); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copy-btn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<span>✅</span> ${t('msg_copy_ok')}`;
+    btn.classList.add('copy-ok');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copy-ok'); }, 1800);
+  } catch {
+    showAlert('error', t('msg_copy_fail'));
+  }
+}
+
+// ============================
+// UI ヘルパー
+// ============================
+function setStatus(type, text) {
+  const dot = document.getElementById('status-dot');
+  const span = document.getElementById('status-text');
+  dot.className = 'dot ' + (type === 'active' ? 'active' : type === 'done' ? 'done' : type === 'error' ? 'error' : '');
+  span.textContent = text;
+}
+
+function showAlert(type, msg) {
+  const area = document.getElementById('alert-area');
+  const cls = type === 'error' ? 'alert-error' : 'alert-success';
+  const icon = type === 'error' ? '⚠' : '✓';
+  area.innerHTML = `<div class="alert ${cls}"><span>${icon}</span><span>${escHtml(msg)}</span></div>`;
+}
+
+function clearAlert() {
+  document.getElementById('alert-area').innerHTML = '';
+}
+
+function clearAll() {
+  document.getElementById('raw-input').value = '';
+  document.getElementById('output').value = '';
+  tableData = [];
+  clearImages();
+  document.getElementById('table-area').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div data-i18n="empty_table">Step 1 でデータを解析すると、ここに結果が表示されます</div>
+    </div>`;
+  document.getElementById('stats-area').style.display = 'none';
+  clearAlert();
+  setStatus('', t('status_idle'));
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ============================
+// PWA: Service Worker 登録 & インストール
+// ============================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {/* オフライン非対応でも動作継続 */});
+  });
+}
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBar();
+});
+
+function showInstallBar() {
+  const bar = document.getElementById('install-bar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  bar.innerHTML = `
+    <span class="install-text">⬇️ ${t('install_text')}</span>
+    <button class="btn btn-primary" style="font-size:13px;" onclick="doInstall()">${t('install_btn')}</button>
+  `;
+}
+
+async function doInstall() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  const bar = document.getElementById('install-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+window.addEventListener('appinstalled', () => {
+  const bar = document.getElementById('install-bar');
+  if (bar) bar.style.display = 'none';
+});
+</script>
+</body>
+</html>

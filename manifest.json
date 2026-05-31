@@ -1,0 +1,26 @@
+{
+  "name": "FM.LNC GEN — .lnc コードジェネレーター",
+  "short_name": "FM.LNC GEN",
+  "description": "Football Manager 向け .lnc コードジェネレーター（AI翻訳対応）",
+  "lang": "ja",
+  "start_url": "./fm-lnc-generator.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0f14",
+  "theme_color": "#0d0f14",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
