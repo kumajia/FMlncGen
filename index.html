@@ -2069,6 +2069,7 @@ async function translateWithGemini(phrase, apiKey) {
 
   const maxRetries = 4;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (cancelRequested) throw new Error('CANCELLED');
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2093,6 +2094,7 @@ async function translateWithGemini(phrase, apiKey) {
       if (waitMs > 60000) waitMs = 60000;
       setStatus('active', t('msg_ratelimit', Math.ceil(waitMs/1000), attempt + 1, maxRetries));
       await sleep(waitMs);
+      if (cancelRequested) throw new Error('CANCELLED');
       continue;
     }
 
@@ -2120,6 +2122,7 @@ async function translateBatch(items, apiKey) {
 
   const maxRetries = 4;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (cancelRequested) throw new Error('CANCELLED');
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2142,6 +2145,7 @@ async function translateBatch(items, apiKey) {
       if (waitMs > 60000) waitMs = 60000;
       setStatus('active', t('msg_ratelimit', Math.ceil(waitMs / 1000), attempt + 1, maxRetries));
       await sleep(waitMs);
+      if (cancelRequested) throw new Error('CANCELLED');
       continue;
     }
     throw new Error(msg);
@@ -2281,7 +2285,7 @@ async function _runParse() {
 
     let processed = 0;
     for (let bi = 0; bi < batches.length; bi++) {
-      if (cancelRequested) { showAlert('warn', t('warn_cancelled', processed, aiQueue.length)); break; }
+      if (cancelRequested) break;
       const batch = batches[bi];
       // バッチ内の通し番号 i を付与（応答JSONのキーに対応）
       const items = batch.map((q, idx) => ({ i: idx, phrase: q.phrase }));
@@ -2291,6 +2295,7 @@ async function _runParse() {
       try {
         resultMap = await translateBatch(items, apiKey);
       } catch (e) {
+        if (e.message === 'CANCELLED' || cancelRequested) break;
         logError('translateBatch', e);
         // バッチ全体が失敗 → この後の個別フォールバックで拾う
       }
@@ -2309,13 +2314,15 @@ async function _runParse() {
       }
 
       // 取りこぼし分だけ1件ずつ再翻訳
+      let stopped = false;
       for (const q of missing) {
-        if (cancelRequested) break;
+        if (cancelRequested) { stopped = true; break; }
         try {
           const one = await translateWithGemini(q.phrase, apiKey);
           q.indices.forEach(j => { tableData[j].translated = one; });
           statAi += q.indices.length;
         } catch (e) {
+          if (e.message === 'CANCELLED' || cancelRequested) { stopped = true; break; }
           logError('translateWithGemini:' + q.phrase, e);
           q.indices.forEach(j => {
             tableData[j].translated = t('msg_transfail');
@@ -2324,11 +2331,13 @@ async function _runParse() {
         }
         if (!cancelRequested) await sleep(gapMs);
       }
+      if (stopped) break;
 
       processed += batch.length;
       saveSession();
       if (bi < batches.length - 1 && !cancelRequested) await sleep(gapMs);
     }
+    if (cancelRequested) showAlert('warn', t('warn_cancelled', processed, aiQueue.length));
     setTranslating(false);
   }
 
@@ -2348,7 +2357,17 @@ function finishParse(statDict, statAi, statUser) {
   setStatus('done', t('msg_done', tableData.length, statDict, statAi, statUser));
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+// 中断可能な待機。cancelRequested が立ったら待ち時間の途中でも即座に抜ける
+function sleep(ms) {
+  return new Promise(resolve => {
+    const start = Date.now();
+    const tick = () => {
+      if (cancelRequested || Date.now() - start >= ms) { resolve(); return; }
+      setTimeout(tick, Math.min(200, ms));
+    };
+    tick();
+  });
+}
 
 // ============================
 // テーブル描画
