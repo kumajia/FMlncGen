@@ -795,6 +795,9 @@
           <button class="btn btn-ghost" onclick="extractFromImages()">
             <span>🔍</span> <span data-i18n="btn_extract">画像からクラブ名とIDを抽出</span>
           </button>
+          <button class="btn btn-secondary" id="extract-stop-btn" onclick="requestCancel()" style="display:none;color:var(--error);border-color:rgba(255,77,109,0.3);">
+            <span>⏹</span> <span data-i18n="btn_stop">停止</span>
+          </button>
           <button class="btn btn-secondary" onclick="clearImages()" style="font-size:12px;" data-i18n="btn_clearimg">画像をクリア</button>
         </div>
       </div>
@@ -965,6 +968,7 @@ const I18N = {
     msg_img_analyzing: (n) => `画像を解析中... (${n} 枚)`,
     msg_extract_done: (n) => `抽出完了！ ${n} 行を入力欄に追加しました。内容を確認して「解析して翻訳開始」へ。`,
     msg_extract_ok: (n) => `${n} 行のクラブデータを抽出しました。入力欄で内容を確認・修正してください。`,
+    msg_extract_cancelled: "画像の抽出を中断しました。",
     msg_img_pasted: "画像を貼り付けました。「画像から抽出」をクリックしてください。",
     msg_extracterr: (e) => `画像抽出エラー: ${e}`,
     msg_savedict: (n) => `${n} 件のワードをユーザー辞書に保存しました。次回は自動入力されます。`,
@@ -1062,6 +1066,7 @@ const I18N = {
     msg_img_analyzing: (n) => `Analyzing images... (${n})`,
     msg_extract_done: (n) => `Extracted! Added ${n} lines to the input. Review, then click "Parse & Translate".`,
     msg_extract_ok: (n) => `Extracted ${n} club lines. Please review/edit them in the input field.`,
+    msg_extract_cancelled: "Image extraction cancelled.",
     msg_img_pasted: "Image pasted. Click \"Extract from images\".",
     msg_extracterr: (e) => `Image extraction error: ${e}`,
     msg_savedict: (n) => `Saved ${n} words to your dictionary. They'll auto-fill next time.`,
@@ -1640,6 +1645,10 @@ function setTranslating(on) {
   const stop = document.getElementById('stop-btn');
   if (stop) stop.style.display = on ? '' : 'none';
 }
+function setExtracting(on) {
+  const stop = document.getElementById('extract-stop-btn');
+  if (stop) stop.style.display = on ? '' : 'none';
+}
 
 // ============================
 // セッション自動保存・復元
@@ -1939,6 +1948,10 @@ function removeImage(i) {
 }
 
 function clearImages() {
+  // 抽出中なら中断も行う（クリアで止まることを期待するユーザー向け）
+  if (document.getElementById('extract-stop-btn')?.style.display !== 'none') {
+    cancelRequested = true;
+  }
   loadedImages = [];
   renderImagePreview();
 }
@@ -1978,6 +1991,8 @@ async function extractFromImages() {
   if (!apiKey) { showAlert('error', t('msg_need_key')); return; }
 
   clearAlert();
+  cancelRequested = false;
+  setExtracting(true);
   setStatus('active', t('msg_img_analyzing', loadedImages.length));
 
   const extractPrompt = `この画像はFootball Manager（サッカーゲーム）の画面のスクリーンショットです。
@@ -2002,6 +2017,7 @@ async function extractFromImages() {
     const maxRetries = 4;
     let text = null;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (cancelRequested) throw new Error('CANCELLED');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2025,6 +2041,7 @@ async function extractFromImages() {
         if (waitMs > 60000) waitMs = 60000;
         setStatus('active', t('msg_ratelimit', Math.ceil(waitMs/1000), attempt + 1, maxRetries));
         await sleep(waitMs);
+        if (cancelRequested) throw new Error('CANCELLED');
         continue;
       }
       throw new Error(msg);
@@ -2039,9 +2056,16 @@ async function extractFromImages() {
     setStatus('done', t('msg_extract_done', lineCount));
     showAlert('success', t('msg_extract_ok', lineCount));
   } catch (e) {
-    logError('extractFromImages', e);
-    setStatus('error', t('msg_extracterr', e.message));
-    showAlert('error', t('msg_extracterr', e.message));
+    if (e.message === 'CANCELLED' || cancelRequested) {
+      setStatus('', t('status_idle'));
+      showAlert('warn', t('msg_extract_cancelled'));
+    } else {
+      logError('extractFromImages', e);
+      setStatus('error', t('msg_extracterr', e.message));
+      showAlert('error', t('msg_extracterr', e.message));
+    }
+  } finally {
+    setExtracting(false);
   }
 }
 
