@@ -3,7 +3,7 @@
   "short_name": "FM.LNC GEN",
   "description": "Football Manager 向け .lnc コードジェネレーター（AI翻訳対応）",
   "lang": "ja",
-  "start_url": "./fm-lnc-generator.html",
+  "start_url": "./"
   "scope": "./",
   "display": "standalone",
   "background_color": "#0d0f14",
