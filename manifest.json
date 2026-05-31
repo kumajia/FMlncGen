@@ -1,6 +1,6 @@
 {
-  "name": "FM.LNC GEN — .lnc コードジェネレーター",
-  "short_name": "FM.LNC GEN",
+  "name": "FMlncGen — .lnc コードジェネレーター",
+  "short_name": "FMlncGen",
   "description": "Football Manager 向け .lnc コードジェネレーター（AI翻訳対応）",
   "lang": "ja",
   "start_url": "./",

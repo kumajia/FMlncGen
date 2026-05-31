@@ -1,5 +1,5 @@
 // FM.LNC GEN — Service Worker
-const CACHE = 'fmlnc-v5';
+const CACHE = 'fmlnc-v7';
 const ASSETS = [
   './',
   './index.html',

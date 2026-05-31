@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FM .lnc コードジェネレーター</title>
+<title>FMlncGen — .lnc コードジェネレーター</title>
 <meta name="description" content="Football Manager .lnc code generator with AI translation">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d0f14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="FM.LNC GEN">
+<meta name="apple-mobile-web-app-title" content="FMlncGen">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -701,7 +701,7 @@
   <!-- Header -->
   <div class="header">
     <div>
-      <div class="header-logo">FM.LNC<span style="color:#00b8d9;font-size:36px;">GEN</span></div>
+      <div class="header-logo">FMlnc<span style="color:#00b8d9;font-size:36px;">Gen</span></div>
     </div>
     <div style="padding-bottom:10px;flex:1;">
       <div class="header-sub">Football Manager .lnc <span data-i18n="header_sub">コードジェネレーター</span> <span class="badge" data-i18n="badge_ai">AI翻訳対応</span></div>
@@ -767,6 +767,17 @@
           <option value="400" data-i18n="rate_max">最速（0.4秒間隔／有料枠向け）</option>
         </select>
         <div class="hint" data-i18n="hint_rate">※ 「limit: 5 / retry in Xs」エラーは速すぎが原因。無料枠は通常1分5件なので「安全」を選んでください。429が出ても自動でリトライします。</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" data-i18n="label_batch">バッチサイズ（1リクエストでまとめる件数）</label>
+        <select id="batch-size">
+          <option value="15" data-i18n="batch_15">15件ずつ（推奨・無料枠に優しい）</option>
+          <option value="20" data-i18n="batch_20">20件ずつ</option>
+          <option value="10" data-i18n="batch_10">10件ずつ</option>
+          <option value="1" data-i18n="batch_1">1件ずつ（まとめない）</option>
+        </select>
+        <div class="hint" data-i18n="hint_batch">※ まとめて翻訳するとAPI呼び出し回数が減り、無料枠制限に当たりにくくなります。取りこぼしは自動で個別再翻訳します。</div>
       </div>
 
       <div class="field-group">
@@ -938,6 +949,13 @@ const I18N = {
     msg_no_valid: "有効な行が見つかりませんでした。形式を確認してください。\n例: KE wervik 539859",
     msg_processing: (n) => `${n} 件を処理中...`,
     msg_translating: (a,b,p) => `AI翻訳中... (${a}/${b}) — ${p}`,
+    msg_translating_batch: (b,total,done,all) => `AI翻訳中... バッチ ${b}/${total}（${done}/${all} 件完了）`,
+    label_batch: "バッチサイズ（1リクエストでまとめる件数）",
+    batch_15: "15件ずつ（推奨・無料枠に優しい）",
+    batch_20: "20件ずつ",
+    batch_10: "10件ずつ",
+    batch_1: "1件ずつ（まとめない）",
+    hint_batch: "※ まとめて翻訳するとAPI呼び出し回数が減り、無料枠制限に当たりにくくなります。取りこぼしは自動で個別再翻訳します。",
     msg_ratelimit: (s,a,m) => `レート制限中… ${s}秒待機してリトライ (${a}/${m})`,
     msg_done: (t,d,a,u) => `完了！ ${t} 件処理。辞書:${d} / AI:${a} / ユーザー:${u}`,
     msg_transfail: "⚠ 翻訳失敗",
@@ -1028,6 +1046,13 @@ const I18N = {
     msg_no_valid: "No valid lines found. Check the format.\nExample: KE wervik 539859",
     msg_processing: (n) => `Processing ${n} items...`,
     msg_translating: (a,b,p) => `Translating with AI... (${a}/${b}) — ${p}`,
+    msg_translating_batch: (b,total,done,all) => `Translating with AI... batch ${b}/${total} (${done}/${all} done)`,
+    label_batch: "Batch size (items per request)",
+    batch_15: "15 at a time (recommended, gentle on free tier)",
+    batch_20: "20 at a time",
+    batch_10: "10 at a time",
+    batch_1: "1 at a time (no batching)",
+    hint_batch: "Batching reduces API calls and helps avoid free-tier limits. Any misses are auto-retried individually.",
     msg_ratelimit: (s,a,m) => `Rate limited… waiting ${s}s then retrying (${a}/${m})`,
     msg_done: (t,d,a,u) => `Done! Processed ${t}. Dict:${d} / AI:${a} / User:${u}`,
     msg_transfail: "⚠ Translation failed",
@@ -1542,7 +1567,7 @@ function logError(context, err) {
     stack: (err && (err.stack || err.reason?.stack)) || ''
   };
   ERROR_LOG.push(entry);
-  try { console.error('[FM.LNC GEN]', context, err); } catch {}
+  try { console.error('[FMlncGen]', context, err); } catch {}
   updateErrLogBtn();
   return entry;
 }
@@ -1574,7 +1599,7 @@ function downloadErrorLog() {
     return;
   }
   const header = [
-    'FM.LNC GEN error log',
+    'FMlncGen error log',
     'generated: ' + new Date().toISOString(),
     'userAgent: ' + navigator.userAgent,
     'language: ' + LANG,
@@ -2076,6 +2101,68 @@ async function translateWithGemini(phrase, apiKey) {
   throw new Error('リトライ上限に達しました（レート制限）');
 }
 
+// 複数クラブ名を1リクエストでまとめて翻訳し、{番号: カタカナ} を返す。
+// items: [{ i, phrase }]（i は呼び出し側が振る通し番号）
+async function translateBatch(items, apiKey) {
+  const model = document.getElementById('model-select')?.value || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const listText = items.map(it => `${it.i}: ${it.phrase}`).join('\n');
+  const systemPrompt = `あなたはフットボールデータベースの翻訳専門家です。入力の各行「番号: クラブ名」について、クラブ名を自然な日本語カタカナに音訳してください。
+ルール:
+- FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳せず出力から省略してください。
+- 地名とチーム名詞のみを正確で標準的な日本語カタカナに変換してください。
+- 複数の単語は半角スペース1つで区切ってください。
+- 出力は必ず JSON オブジェクトのみ。キーは入力の番号（文字列）、値はカタカナ名。散文・説明・コードフェンスは一切付けないでください。`;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n翻訳対象:\n${listText}` }] }]
+  };
+
+  const maxRetries = 4;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!text) throw new Error('Gemini から空のレスポンスが返されました');
+      return parseBatchJson(text);
+    }
+
+    const err = await res.json().catch(() => ({}));
+    const msg = err.error?.message || `HTTP ${res.status}`;
+    if (res.status === 429 && attempt < maxRetries) {
+      const m = msg.match(/retry in ([\d.]+)s/i);
+      // retry in が無い場合は指数バックオフ（10s,20s,40s…、上限60s）
+      let waitMs = m ? Math.ceil(parseFloat(m[1]) * 1000) + 500 : Math.pow(2, attempt) * 10000;
+      if (waitMs > 60000) waitMs = 60000;
+      setStatus('active', t('msg_ratelimit', Math.ceil(waitMs / 1000), attempt + 1, maxRetries));
+      await sleep(waitMs);
+      continue;
+    }
+    throw new Error(msg);
+  }
+  throw new Error('リトライ上限に達しました（レート制限）');
+}
+
+// バッチ応答(JSON)を { 番号: カタカナ } のオブジェクトに変換
+function parseBatchJson(text) {
+  let s = String(text || '').replace(/```json|```/gi, '').trim();
+  const m = s.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('JSON を解析できませんでした');
+  const obj = JSON.parse(m[0]);
+  const out = {};
+  Object.keys(obj).forEach(k => {
+    const v = obj[k];
+    if (typeof v === 'string' && v.trim()) out[String(k).trim()] = v.trim();
+  });
+  return out;
+}
+
 // ============================
 // メイン処理
 // ============================
@@ -2178,33 +2265,69 @@ async function _runParse() {
     }
   }
 
-  // AI一括翻訳
+  // AI一括翻訳（バッチ処理：複数件を1リクエストにまとめる）
   if (aiQueue.length > 0) {
     cancelRequested = false;
     setTranslating(true);
-    setStatus('active', t('msg_translating', 0, aiQueue.length, ''));
-    for (let qi = 0; qi < aiQueue.length; qi++) {
-      if (cancelRequested) {
-        showAlert('warn', t('warn_cancelled', qi, aiQueue.length));
-        break;
-      }
-      const q = aiQueue[qi];
-      setStatus('active', t('msg_translating', qi + 1, aiQueue.length, q.phrase));
+
+    const batchSize = parseInt(document.getElementById('batch-size')?.value || '15', 10);
+    const gapMs = parseInt(document.getElementById('rate-gap')?.value || '12000', 10);
+
+    // バッチに分割
+    const batches = [];
+    for (let i = 0; i < aiQueue.length; i += batchSize) {
+      batches.push(aiQueue.slice(i, i + batchSize));
+    }
+
+    let processed = 0;
+    for (let bi = 0; bi < batches.length; bi++) {
+      if (cancelRequested) { showAlert('warn', t('warn_cancelled', processed, aiQueue.length)); break; }
+      const batch = batches[bi];
+      // バッチ内の通し番号 i を付与（応答JSONのキーに対応）
+      const items = batch.map((q, idx) => ({ i: idx, phrase: q.phrase }));
+      setStatus('active', t('msg_translating_batch', bi + 1, batches.length, processed, aiQueue.length));
+
+      let resultMap = {};
       try {
-        const result = await translateWithGemini(q.phrase, apiKey);
-        q.indices.forEach(idx => { tableData[idx].translated = result; });
-        statAi += q.indices.length;
+        resultMap = await translateBatch(items, apiKey);
       } catch (e) {
-        logError('translateWithGemini:' + q.phrase, e);
-        q.indices.forEach(idx => {
-          tableData[idx].translated = t('msg_transfail');
-          tableData[idx].error = e.message;
-        });
-        showAlert('error', t('msg_transerr', q.phrase, e.message));
+        logError('translateBatch', e);
+        // バッチ全体が失敗 → この後の個別フォールバックで拾う
       }
-      // レート制限対策（設定された間隔を待つ）
-      const gapMs = parseInt(document.getElementById('rate-gap')?.value || '12000', 10);
-      if (qi < aiQueue.length - 1 && !cancelRequested) await sleep(gapMs);
+
+      // 結果を反映。取りこぼした項目は個別翻訳でフォールバック
+      const missing = [];
+      for (let idx = 0; idx < batch.length; idx++) {
+        const q = batch[idx];
+        const tx = resultMap[String(idx)];
+        if (tx) {
+          q.indices.forEach(j => { tableData[j].translated = tx; });
+          statAi += q.indices.length;
+        } else {
+          missing.push(q);
+        }
+      }
+
+      // 取りこぼし分だけ1件ずつ再翻訳
+      for (const q of missing) {
+        if (cancelRequested) break;
+        try {
+          const one = await translateWithGemini(q.phrase, apiKey);
+          q.indices.forEach(j => { tableData[j].translated = one; });
+          statAi += q.indices.length;
+        } catch (e) {
+          logError('translateWithGemini:' + q.phrase, e);
+          q.indices.forEach(j => {
+            tableData[j].translated = t('msg_transfail');
+            tableData[j].error = e.message;
+          });
+        }
+        if (!cancelRequested) await sleep(gapMs);
+      }
+
+      processed += batch.length;
+      saveSession();
+      if (bi < batches.length - 1 && !cancelRequested) await sleep(gapMs);
     }
     setTranslating(false);
   }
@@ -2502,8 +2625,8 @@ function _generateLnc() {
   }
 
   const lines = [];
-  lines.push('; FM .lnc コード — FM .lnc Code Generator で生成');
-  lines.push('; Generated by FM.LNC GEN');
+  lines.push('; FMlncGen — .lnc コード生成');
+  lines.push('; Generated by FMlncGen');
   lines.push('');
 
   let dropped = 0;
