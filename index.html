@@ -933,7 +933,7 @@
   </div>
 
   <div style="text-align:center;margin-top:24px;padding:12px;color:var(--text-muted);font-size:11px;">
-    FMlncGen <span id="app-version">v1.4.0</span>
+    FMlncGen <span id="app-version">v1.5.0</span>
   </div>
 
 </div>
@@ -964,7 +964,7 @@ const I18N = {
     btn_extract: "画像からクラブ名とIDを抽出", btn_clearimg: "画像をクリア",
     label_clubdata: "クラブデータ（1行1クラブ）",
     label_target: "対象", target_club: "クラブ名", target_comp: "大会名", target_player: "選手名", target_stadium: "スタジアム名", hint_target: "※ 出力するコードが切り替わります（クラブ→CLUB_、大会→COMP_、選手→CHANGE_PLAYER_NAME、スタジアム→STADIUM_NAME_CHANGE）。", label_compdata: "大会データ（1行1大会）", hint_compdata: "形式: [大会名] [ID数字] — スクショ抽出結果もここに入ります", label_playerdata: "選手データ（1行1選手）", hint_playerdata: "形式: [選手名] [ID数字] — 名前はAIがカタカナに変換します", label_stadiumdata: "スタジアムデータ（1行1件）", hint_stadiumdata: "形式: [スタジアム名] [ID数字]",
-    hint_clubdata: "形式: [プレフィックス(任意)] [クラブ名] [ID数字] — スクショ抽出結果もここに入ります",
+    hint_clubdata: "形式: [プレフィックス(任意)] クラブ名 [国名(任意)] ID数字 — 国名はスクショ抽出で自動付与され、翻訳のヒントになります",
     btn_run: "解析して翻訳開始", btn_clear: "クリア",
     status_idle: "待機中 — データを入力して「解析して翻訳開始」をクリック",
     label_dictmgmt: "📚 ユーザー辞書の管理",
@@ -1969,6 +1969,14 @@ function parseLine(line) {
   line = line.trim();
   if (!line) return null;
 
+  // 国名ヒント [○○] を抽出して取り除く（翻訳ヒント用。.lnc 出力には含めない）
+  let country = '';
+  const cMatch = line.match(/\[([^\]]+)\]/);
+  if (cMatch) {
+    country = cMatch[1].trim();
+    line = (line.slice(0, cMatch.index) + line.slice(cMatch.index + cMatch[0].length)).replace(/\s+/g, ' ').trim();
+  }
+
   // 末尾のIDを抽出（1桁以上の数字）
   const idMatch = line.match(/\s+(\d+)$/);
   if (!idMatch) return null;
@@ -2008,7 +2016,7 @@ function parseLine(line) {
   const prefix = prefixWords.join(' ');
   const nameWords = words.slice(idx);
 
-  return { id, prefix, originalName: nameWords.join(' '), nameWords };
+  return { id, prefix, originalName: nameWords.join(' '), nameWords, country };
 }
 
 // ============================
@@ -2130,14 +2138,19 @@ async function extractFromImages() {
   setStatus('active', t('msg_img_analyzing', loadedImages.length));
 
   const noun = { comp: '大会名', player: '選手名', stadium: 'スタジアム名' }[getTarget()] || 'クラブ名';
+  const isClub = getTarget() === 'club';
+  const countryRule = isClub
+    ? `\n- 国名（例: セルビア、フランス）が表示されている場合は、${noun}の直後に [国名] を付けてください。地域名（例: 東ヨーロッパ）ではなく国名を使ってください。国名が無ければ付けなくて構いません。`
+    : '';
+  const fmtCountry = isClub ? '[国名(任意)] ' : '';
   const extractPrompt = `この画像はFootball Manager（サッカーゲーム）の画面のスクリーンショットです。
 画像に表示されている${noun}と、それに対応するID番号（数字）を読み取ってください。
 出力ルール:
 - 1件につき1行で出力してください。
-- 形式は「${noun} ID番号」（${noun}のあとに半角スペース、最後にID数字）。
+- 形式は「${noun} ${fmtCountry}ID番号」（${noun}のあとに半角スペース、最後にID数字）。
 - ID番号が見当たらない場合は${noun}だけを出力してください。
 - 説明文、見出し、番号付けは一切不要です。データ行のみを出力してください。
-- ${noun}は画像に表示されている原語（英語/現地語）のまま、変換せずに出力してください。`;
+- ${noun}は画像に表示されている原語（英語/現地語）のまま、変換せずに出力してください。${countryRule}`;
 
   try {
     const text = await callVisionModel(extractPrompt, loadedImages, apiKey);
@@ -2293,7 +2306,7 @@ async function callVisionModelOnce(promptText, images, apiKey) {
 // ============================
 // 翻訳呼び出し
 // ============================
-async function translateWithGemini(phrase, apiKey) {
+async function translateWithGemini(phrase, apiKey, country) {
   const systemPrompt = `あなたはフットボールデータベースの翻訳専門家です。ヨーロッパのクラブ名を自然な日本語カタカナに音訳してください。
 ルール:
 - FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳しないでください。出力から省略してください。
@@ -2302,18 +2315,21 @@ async function translateWithGemini(phrase, apiKey) {
 - 同じ綴りには常に同じカタカナを当て、表記を揺らさないでください。
 - 複数の単語は半角スペース1つで区切ってください（例: "Wanze Bas Oha" → "ワンズ バゾハ"）。
 - 散文、考察、フォーマットは一切出力しないでください。翻訳されたカタカナのみを出力してください。`;
-  return callTextModel(`${systemPrompt}\n\n翻訳してください: ${phrase}`, apiKey);
+  const hint = country ? `\nこのクラブは「${country}」のクラブです。その国の言語の発音に合わせてください。` : '';
+  return callTextModel(`${systemPrompt}${hint}\n\n翻訳してください: ${phrase}`, apiKey);
 }
 
 // 複数クラブ名を1リクエストでまとめて翻訳し、{番号: カタカナ} を返す。
 // items: [{ i, phrase }]（i は呼び出し側が振る通し番号）
 async function translateBatch(items, apiKey) {
-  const listText = items.map(it => `${it.i}: ${it.phrase}`).join('\n');
+  const listText = items.map(it => it.country
+    ? `${it.i}: ${it.phrase}（${it.country}のクラブ）`
+    : `${it.i}: ${it.phrase}`).join('\n');
   const systemPrompt = `あなたはフットボールデータベースの翻訳専門家です。入力の各行「番号: クラブ名」について、クラブ名を自然な日本語カタカナに音訳してください。
 ルール:
 - FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳せず出力から省略してください。
 - 地名とチーム名詞のみを正確で標準的な日本語カタカナに変換してください。
-- 綴りから言語圏を推測し、その地域の発音に近いカタカナにしてください（例: オランダ語圏なら「スポルト」、フランス語圏なら「スポール」）。確信が持てない場合は、最も一般的なカタカナ表記を選んでください。
+- 行に「（○○のクラブ）」と国名がある場合は、その国の言語の発音に合わせてください。無い場合は綴りから言語圏を推測してください（例: オランダ語圏なら「スポルト」、フランス語圏なら「スポール」）。確信が持てない場合は、最も一般的なカタカナ表記を選んでください。
 - 同じ綴りには常に同じカタカナを当て、表記を揺らさないでください。
 - 複数の単語は半角スペース1つで区切ってください。
 - 出力は必ず JSON オブジェクトのみ。キーは入力の番号（文字列）、値はカタカナ名。散文・説明・コードフェンスは一切付けないでください。`;
@@ -2414,11 +2430,11 @@ async function _runParse() {
         isNew: true,
         source: 'ai'
       });
-      const key = p.originalName.toLowerCase();
+      const key = p.originalName.toLowerCase() + '|' + (p.country || '');
       if (queueByPhrase[key]) {
         queueByPhrase[key].indices.push(tableDataIndex);
       } else {
-        const entry = { phrase: p.originalName, indices: [tableDataIndex] };
+        const entry = { phrase: p.originalName, country: p.country || '', indices: [tableDataIndex] };
         queueByPhrase[key] = entry;
         aiQueue.push(entry);
       }
@@ -2456,7 +2472,7 @@ async function _runParse() {
       if (cancelRequested) break;
       const batch = batches[bi];
       // バッチ内の通し番号 i を付与（応答JSONのキーに対応）
-      const items = batch.map((q, idx) => ({ i: idx, phrase: q.phrase }));
+      const items = batch.map((q, idx) => ({ i: idx, phrase: q.phrase, country: q.country || '' }));
       setStatus('active', t('msg_translating_batch', bi + 1, batches.length, processed, aiQueue.length));
 
       let resultMap = {};
@@ -2486,7 +2502,7 @@ async function _runParse() {
       for (const q of missing) {
         if (cancelRequested) { stopped = true; break; }
         try {
-          const one = await translateWithGemini(q.phrase, apiKey);
+          const one = await translateWithGemini(q.phrase, apiKey, q.country || '');
           q.indices.forEach(j => { tableData[j].translated = one; });
           statAi += q.indices.length;
         } catch (e) {
