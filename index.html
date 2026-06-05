@@ -2682,8 +2682,8 @@ function isDictRegisterable(d) {
   const trans = (d.translated || '').trim();
   if (!trans || trans === t('msg_transfail') || d.error) return false;
   if (!d.originalName) return false;
-  // 原語と訳が同一（= .lnc由来でカタカナしか無い）の行は除外
-  if (d.source === 'import' && d.originalName.trim() === trans) return false;
+  // .lnc読み込み由来で、原語側にラテン文字が無い（＝カタカナ等のみで原語ではない）行は登録しない
+  if (d.source === 'import' && !/[A-Za-z]/.test(d.originalName)) return false;
   return true;
 }
 
@@ -2815,17 +2815,14 @@ function clearUserDict() {
 }
 
 // キーがカタカナ（＝原語でない）の不要エントリを掃除する。
-// 原語キー（ラテン文字などを含む）は残し、キーがカナ/かな/CJKのみのものを削除。
+// 原語キーは必ずラテン文字（A-Z a-z）を含むので、ラテン文字を含まないキーを削除対象とする。
 function cleanupUserDict() {
   const userDict = getUserDict();
   const keys = Object.keys(userDict);
   if (keys.length === 0) { showAlert('warn', t('msg_dictcleanup_empty')); return; }
 
-  // 「原語らしさ」= ラテン文字（A-Z a-z）を含むキーは原語として残す。
-  // それを含まず、ひらがな/カタカナ/漢字だけのキーは「カタカナだけの無効エントリ」として削除候補。
-  const hasLatin = k => /[A-Za-z]/.test(k);
-  const isJpOnly = k => /^[\u3040-\u30ff\u3400-\u9fff\u30fc\s・･。、ー－\-]+$/.test(k);
-  const toDelete = keys.filter(k => !hasLatin(k) && isJpOnly(k));
+  // ラテン文字を含まないキー（カタカナ・かな・漢字・記号・数字のみ）は、原語が無い無効エントリ
+  const toDelete = keys.filter(k => !/[A-Za-z]/.test(k));
 
   if (toDelete.length === 0) { showAlert('success', t('msg_dictcleanup_none')); return; }
   if (!confirm(t('msg_dictcleanup_confirm', toDelete.length))) return;
