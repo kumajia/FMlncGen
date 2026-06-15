@@ -1671,15 +1671,7 @@ function downloadErrorLog() {
       .join('\r\n')
   ).join('\r\n\r\n');
   const text = header + '\r\n\r\n' + body + '\r\n';
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'fm-lnc-gen-error.log';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), 'fm-lnc-gen-error.log');
   showAlert('success', t('errlog_saved', ERROR_LOG.length));
 }
 
@@ -2190,26 +2182,9 @@ async function extractFromImages() {
 // API 呼び出し（プロバイダ共通）
 // ============================
 
-// テキストプロンプトを送り、本文テキストを返す。Gemini / Groq を切り替え。
-// リトライ・バックオフ・中断は共通で処理する。
-async function callTextModel(promptText, apiKey) {
-  const provider = getProvider();
-  const model = document.getElementById('model-select')?.value
-    || (provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash');
-
-  let url, headers, body, extractText;
-  if (provider === 'groq') {
-    url = 'https://api.groq.com/openai/v1/chat/completions';
-    headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
-    body = { model, messages: [{ role: 'user', content: promptText }] };
-    extractText = data => data.choices?.[0]?.message?.content?.trim();
-  } else {
-    url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    headers = { 'Content-Type': 'application/json' };
-    body = { contents: [{ role: 'user', parts: [{ text: promptText }] }] };
-    extractText = data => data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  }
-
+// リトライ・バックオフ・中断を共通化したフェッチ。
+// extractText(data) でレスポンスから本文を取り出す関数を受け取る。
+async function fetchWithRetry(url, headers, body, extractText, emptyErrorMsg) {
   const maxRetries = 4;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (cancelRequested) throw new Error('CANCELLED');
@@ -2217,7 +2192,7 @@ async function callTextModel(promptText, apiKey) {
     if (res.ok) {
       const data = await res.json();
       const text = extractText(data);
-      if (!text) throw new Error('APIから空のレスポンスが返されました');
+      if (!text) throw new Error(emptyErrorMsg || 'APIから空のレスポンスが返されました');
       return text;
     }
     const err = await res.json().catch(() => ({}));
@@ -2232,6 +2207,31 @@ async function callTextModel(promptText, apiKey) {
     throw new Error(msg);
   }
   throw new Error('リトライ上限に達しました（一時的エラー）');
+}
+
+// テキストプロンプトを送り、本文テキストを返す。Gemini / Groq を切り替え。
+// extraConfig: { generationConfig } (Gemini) / { responseFormat } (Groq) を任意で渡せる
+async function callTextModel(promptText, apiKey, extraConfig) {
+  const provider = getProvider();
+  const model = document.getElementById('model-select')?.value
+    || (provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash');
+
+  let url, headers, body, extractText;
+  if (provider === 'groq') {
+    url = 'https://api.groq.com/openai/v1/chat/completions';
+    headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+    body = { model, messages: [{ role: 'user', content: promptText }] };
+    if (extraConfig?.responseFormat) body.response_format = extraConfig.responseFormat;
+    extractText = data => data.choices?.[0]?.message?.content?.trim();
+  } else {
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    headers = { 'Content-Type': 'application/json' };
+    body = { contents: [{ role: 'user', parts: [{ text: promptText }] }] };
+    if (extraConfig?.generationConfig) body.generationConfig = extraConfig.generationConfig;
+    extractText = data => data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  }
+
+  return fetchWithRetry(url, headers, body, extractText, 'APIから空のレスポンスが返されました');
 }
 
 // プロンプト＋画像を送り本文テキストを返す。画像枚数の上限を超える場合は分割して複数回呼び、結果を結合する。
@@ -2288,44 +2288,29 @@ async function callVisionModelOnce(promptText, images, apiKey) {
     extractText = data => data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   }
 
-  const maxRetries = 4;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    if (cancelRequested) throw new Error('CANCELLED');
-    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-    if (res.ok) {
-      const data = await res.json();
-      const text = extractText(data);
-      if (!text) throw new Error('画像から有効なデータを抽出できませんでした');
-      return text;
-    }
-    const err = await res.json().catch(() => ({}));
-    const msg = err.error?.message || `HTTP ${res.status}`;
-    if (isRetryableError(res.status, msg) && attempt < maxRetries) {
-      const waitMs = backoffDelay(res.status, msg, attempt);
-      setStatus('active', t('msg_retrying', Math.ceil(waitMs / 1000), attempt + 1, maxRetries));
-      await sleep(waitMs);
-      if (cancelRequested) throw new Error('CANCELLED');
-      continue;
-    }
-    throw new Error(msg);
-  }
-  throw new Error('リトライ上限に達しました（一時的エラー）');
+  return fetchWithRetry(url, headers, body, extractText, '画像から有効なデータを抽出できませんでした');
 }
 
 // ============================
 // 翻訳呼び出し
 // ============================
-async function translateWithGemini(phrase, apiKey, country) {
-  const systemPrompt = `あなたはフットボールデータベースの翻訳専門家です。ヨーロッパのクラブ名を自然な日本語カタカナに音訳してください。
-ルール:
-- FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳せず、元のアルファベットのまま、元の位置（前か後ろか）を保って残してください（例: "London City FC" → "ロンドン シティ FC"、"FC Porto" → "FC ポルト"）。
+
+// 翻訳ルール（単体・バッチ共通の基礎部分）
+const TRANSLATE_RULES = `- FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳せず、元のアルファベットのまま、元の位置（前か後ろか）を保って残してください（例: "London City FC" → "ロンドン シティ FC"、"FC Porto" → "FC ポルト"）。
 - 地名とチーム名詞のみを正確で標準的な日本語カタカナに変換してください。
 - 綴りから言語圏を推測し、その地域の発音に近いカタカナにしてください（例: オランダ語圏なら「スポルト」、フランス語圏なら「スポール」）。確信が持てない場合は、最も一般的なカタカナ表記を選んでください。
 - 同じ綴りには常に同じカタカナを当て、表記を揺らさないでください。
-- 複数の単語は半角スペース1つで区切ってください（例: "Wanze Bas Oha" → "ワンズ バゾハ"）。
-- 散文、考察、フォーマットは一切出力しないでください。翻訳されたカタカナのみを出力してください。`;
+- 複数の単語は半角スペース1つで区切ってください（例: "Wanze Bas Oha" → "ワンズ バゾハ"）。`;
+
+async function translateWithGemini(phrase, apiKey, country) {
   const hint = country ? `\nこのクラブは「${country}」のクラブです。その国の言語の発音に合わせてください。` : '';
-  return callTextModel(`${systemPrompt}${hint}\n\n翻訳してください: ${phrase}`, apiKey);
+  const prompt = `あなたはフットボールデータベースの翻訳専門家です。ヨーロッパのクラブ名を自然な日本語カタカナに音訳してください。
+ルール:
+${TRANSLATE_RULES}
+- 散文、考察、フォーマットは一切出力しないでください。翻訳されたカタカナのみを出力してください。${hint}
+
+翻訳してください: ${phrase}`;
+  return callTextModel(prompt, apiKey);
 }
 
 // 複数クラブ名を1リクエストでまとめて翻訳し、{番号: カタカナ} を返す。
@@ -2334,15 +2319,19 @@ async function translateBatch(items, apiKey) {
   const listText = items.map(it => it.country
     ? `${it.i}: ${it.phrase}（${it.country}のクラブ）`
     : `${it.i}: ${it.phrase}`).join('\n');
-  const systemPrompt = `あなたはフットボールデータベースの翻訳専門家です。入力の各行「番号: クラブ名」について、クラブ名を自然な日本語カタカナに音訳してください。
+  const prompt = `あなたはフットボールデータベースの翻訳専門家です。入力の各行「番号: クラブ名」について、クラブ名を自然な日本語カタカナに音訳してください。
 ルール:
-- FC、KVK、RES、VV、SV などのフットボール略語・頭字語は翻訳せず、元のアルファベットのまま、元の位置（前か後ろか）を保って残してください（例: "London City FC" → "ロンドン シティ FC"）。
-- 地名とチーム名詞のみを正確で標準的な日本語カタカナに変換してください。
-- 行に「（○○のクラブ）」と国名がある場合は、その国の言語の発音に合わせてください。無い場合は綴りから言語圏を推測してください（例: オランダ語圏なら「スポルト」、フランス語圏なら「スポール」）。確信が持てない場合は、最も一般的なカタカナ表記を選んでください。
-- 同じ綴りには常に同じカタカナを当て、表記を揺らさないでください。
-- 複数の単語は半角スペース1つで区切ってください。
-- 出力は必ず JSON オブジェクトのみ。キーは入力の番号（文字列）、値はカタカナ名。散文・説明・コードフェンスは一切付けないでください。`;
-  const text = await callTextModel(`${systemPrompt}\n\n翻訳対象:\n${listText}`, apiKey);
+${TRANSLATE_RULES}
+- 行に「（○○のクラブ）」と国名がある場合は、その国の言語の発音に合わせてください。無い場合は綴りから言語圏を推測してください。
+- 出力は必ず JSON オブジェクトのみ。キーは入力の番号（文字列）、値はカタカナ名。散文・説明・コードフェンスは一切付けないでください。
+
+翻訳対象:
+${listText}`;
+  const provider = getProvider();
+  const extraConfig = provider === 'groq'
+    ? { responseFormat: { type: 'json_object' } }
+    : { generationConfig: { responseMimeType: 'application/json' } };
+  const text = await callTextModel(prompt, apiKey, extraConfig);
   return parseBatchJson(text);
 }
 
@@ -2841,16 +2830,7 @@ function downloadUserDict() {
     showAlert('error', t('msg_dict_empty'));
     return;
   }
-  const json = JSON.stringify(dict, null, 2);
-  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'fm_user_dict.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([JSON.stringify(dict, null, 2)], { type: 'application/json;charset=utf-8' }), 'fm_user_dict.json');
   showAlert('success', t('msg_dict_dl', count));
 }
 
@@ -2987,15 +2967,7 @@ function updateOutputInfo() {
 function downloadLnc() {
   const text = document.getElementById('output').value;
   if (!text.trim()) { showAlert('error', t('msg_gen_first')); return; }
-  const blob = new Blob([toCRLF(text)], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'club_names.lnc';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(new Blob([toCRLF(text)], { type: 'text/plain;charset=utf-8' }), 'club_names.lnc');
   showAlert('success', t('msg_lnc_saved'));
 }
 
@@ -3012,6 +2984,20 @@ async function copyOutput() {
   } catch {
     showAlert('error', t('msg_copy_fail'));
   }
+}
+
+// ============================
+// ダウンロードヘルパー
+// ============================
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ============================
@@ -3044,12 +3030,8 @@ function clearAll() {
   setTranslating(false);
   clearSession();
   clearImages();
-  document.getElementById('table-area').innerHTML = `
-    <div class="empty-state">
-      <div class="empty-icon">📋</div>
-      <div data-i18n="empty_table">Step 1 でデータを解析すると、ここに結果が表示されます</div>
-    </div>`;
   document.getElementById('stats-area').style.display = 'none';
+  renderTable();
   clearAlert();
   setStatus('', t('status_idle'));
 }
