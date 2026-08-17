@@ -1,5 +1,5 @@
 // FM.LNC GEN — Service Worker
-const CACHE = 'fmlnc-v31';
+const CACHE = 'fmlnc-runtime';
 const ASSETS = [
   './',
   './index.html',
@@ -25,16 +25,23 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin || e.request.method !== 'GET') return;
+
+  // オンライン時は常に最新版を返し、取得できないときだけキャッシュへ戻る。
+  // これにより、更新のたびにCACHE名を変更する必要がない。
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      return cached || fetch(e.request).then((res) => {
-        if (res && res.status === 200 && e.request.method === 'GET') {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-        }
-        return res;
-      }).catch(() => cached);
-    })
+    fetch(e.request).then((res) => {
+      if (res && res.status === 200) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() =>
+      caches.match(e.request).then((cached) => {
+        if (cached) return cached;
+        if (e.request.mode === 'navigate') return caches.match('./index.html');
+        return Response.error();
+      })
+    )
   );
 });
