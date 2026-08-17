@@ -155,4 +155,4 @@ Web上（GitHub Pages など）で開くと、ブラウザのアドレスバー�
 
 ## 変更履歴
 
-各バージョンの変更点は [Releases](https://github.com/kumajia/FMlncGen/releases) を参照してください。
+各バージョンの変更点は [CHANGELOG.md](CHANGELOG.md) を参照してください。
