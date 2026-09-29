@@ -12,48 +12,109 @@
 <meta name="apple-mobile-web-app-title" content="FMlncGen">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
+  /* Classic editor look (dark): near-black greys, light grey text, thin
+     lines and small radii. Blue is kept for the main action and the focus
+     ring; red stays on destructive actions and yellow on "needs a look".
+     Only colours live in these tokens -- sizes and spacing are unchanged. */
   :root {
-    --bg-base: #0d0f14;
-    --bg-panel: #13151c;
-    --bg-card: #1a1d27;
-    --bg-input: #0f1118;
-    --accent: #00e5a0;
-    --accent-dim: #00b57d;
-    --accent-glow: rgba(0,229,160,0.15);
-    --warn: #f5c518;
-    --warn-dim: rgba(245,197,24,0.12);
-    --error: #ff4d6d;
-    --text-primary: #e8ecf5;
-    --text-secondary: #8892a4;
-    --text-muted: #4a5268;
-    --border: #1f2535;
-    --border-accent: rgba(0,229,160,0.3);
-    --step-num: #00e5a0;
+    --bg-base: #1c1e22;
+    --bg-panel: #232529;
+    --bg-card: #2b2e33;
+    --bg-input: #17181b;
+    --accent: #6ea8e6;
+    --accent-dim: #4f8fd6;
+    --accent-glow: rgba(110,168,230,0.10);
+    --primary: #2f6db3;
+    --primary-hover: #2a64a6;
+    --on-primary: #ffffff;
+    --warn: #e0b541;
+    --warn-dim: rgba(224,181,65,0.12);
+    --error: #ef6b7b;
+    --text-primary: #e2e4e8;
+    --text-secondary: #a4a9b1;
+    --text-muted: #8a9099;
+    --border: #41454c;
+    --border-accent: #5d88b8;
+    --step-num: #8a9099;
+    /* W-3: self-contained system font stacks. No external font origin is
+       fetched, so a cold offline reload raises no network error. */
+    --font-ui: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+    --font-display: "Bebas Neue", Haettenschweiler, "Arial Narrow", Impact, var(--font-ui);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* A-1 (WCAG 2.2 2.4.7 / 1.4.11): every interactive control keeps a visible
+     keyboard focus indicator. A mouse click does not force an outline,
+     because only :focus-visible draws the ring. */
+  :focus:not(:focus-visible) { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* A disabled control must not get the bright "ready" accent ring. It still
+     needs a ring that clears WCAG 1.4.11 (>=3:1) for the aria-disabled case,
+     which IS focusable: --text-secondary measures 5.36:1 on --bg-card,
+     whereas --text-muted was only 2.16:1. */
+  :disabled:focus-visible,
+  [aria-disabled="true"]:focus-visible { outline-color: var(--text-secondary); }
+  /* Windows High Contrast / forced-colors must not lose the indicator. */
+  @media (forced-colors: active) {
+    :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  }
+
+  /* A-2: names a region for assistive tech without changing the visual design. */
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* A-2: keyboard users skip the header and land on the main content.
+     Hidden with the clip technique rather than an off-screen left offset:
+     a negative `left` is in the scrollable direction under [dir=rtl] and
+     measurably grew documentElement.scrollWidth in Hebrew. */
+  .skip-link {
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    z-index: 100;
+    background: var(--bg-card);
+    color: var(--accent);
+    border: 1px solid var(--border-accent);
+    border-radius: 0 0 5px 0;
+    padding: 12px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .skip-link:focus {
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+  /* 2.4.11: the focused target must not be obscured. */
+  #main-content { scroll-margin-top: 16px; }
+  #main-content:focus { outline: none; }
+
   body {
-    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-family: var(--font-ui);
     background: var(--bg-base);
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
-  }
-
-  /* Background grid */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
   }
 
   .container {
@@ -75,16 +136,13 @@
   }
 
   .header-logo {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: var(--font-display);
     font-size: 52px;
     line-height: 1;
     letter-spacing: 2px;
-    background: linear-gradient(135deg, var(--accent) 0%, #00b8d9 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: none;
+    color: var(--text-primary);
   }
+  .header-logo .logo-sub { color: var(--accent); }
 
   .header-sub {
     font-size: 12px;
@@ -97,9 +155,9 @@
 
   .badge {
     display: inline-block;
-    background: var(--accent-glow);
-    border: 1px solid var(--border-accent);
-    color: var(--accent);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.15em;
@@ -114,14 +172,9 @@
   .step-panel {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     margin-bottom: 20px;
     overflow: hidden;
-    transition: border-color 0.2s;
-  }
-
-  .step-panel:focus-within {
-    border-color: var(--border-accent);
   }
 
   .step-header {
@@ -134,11 +187,10 @@
   }
 
   .step-num {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: var(--font-display);
     font-size: 32px;
     color: var(--step-num);
     line-height: 1;
-    opacity: 0.6;
     min-width: 28px;
   }
 
@@ -178,24 +230,26 @@
     display: flex;
     align-items: center;
   }
+  /* At 375x800 the Shift+Tab path leaves this field's box exactly on the
+     viewport top; Chrome sees it as visible and does not scroll, so the ring's
+     top edge was cut. The margin makes Chrome scroll it 8px into view. */
+  #api-key-gemini { scroll-margin: 8px; }
 
   input[type="password"],
   input[type="text"] {
     width: 100%;
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 3px;
     padding: 11px 42px 11px 14px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
     color: var(--text-primary);
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s;
   }
 
   input:focus {
     border-color: var(--border-accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
   .toggle-vis {
@@ -215,65 +269,42 @@
     width: 100%;
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 3px;
     padding: 14px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 12.5px;
     color: var(--text-primary);
     resize: vertical;
     min-height: 160px;
-    outline: none;
     line-height: 1.7;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s;
   }
 
   textarea:focus {
     border-color: var(--border-accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
   select {
     width: 100%;
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 3px;
     padding: 11px 14px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
     color: var(--text-primary);
-    outline: none;
     cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s;
   }
   select:focus {
     border-color: var(--border-accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
   }
   select option { background: var(--bg-input); color: var(--text-primary); }
-
-  .model-controls {
-    display: flex;
-    align-items: stretch;
-    gap: 8px;
-  }
-  .model-controls select {
-    flex: 1;
-    min-width: 0;
-  }
-  .model-refresh-btn {
-    flex-shrink: 0;
-    padding: 8px 14px;
-    white-space: nowrap;
-    font-size: 11px;
-  }
-  #model-status[data-state="loading"] { color: var(--warning); }
-  #model-status[data-state="success"] { color: var(--accent); }
-  #model-status[data-state="error"] { color: var(--error); }
 
   /* Drop zone */
   .drop-zone {
     border: 2px dashed var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 24px;
     text-align: center;
     cursor: pointer;
@@ -284,7 +315,9 @@
     border-color: var(--border-accent);
     background: var(--accent-glow);
   }
-  .drop-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.7; }
+  /* Decorative pictograms stay (same size, same place) but are toned down
+     to grey so they do not compete with the controls. */
+  .drop-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.7; filter: grayscale(1); }
   .drop-text { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
   .drop-sub { font-size: 11px; color: var(--text-muted); }
   kbd {
@@ -292,9 +325,9 @@
     border: 1px solid var(--border);
     border-radius: 3px;
     padding: 1px 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--accent);
+    color: var(--text-primary);
   }
   .img-preview {
     display: flex;
@@ -306,7 +339,7 @@
     position: relative;
     width: 90px;
     height: 90px;
-    border-radius: 6px;
+    border-radius: 3px;
     overflow: hidden;
     border: 1px solid var(--border);
   }
@@ -332,7 +365,7 @@
     gap: 5px;
     align-self: flex-start;
   }
-  .lang-globe { font-size: 15px; opacity: 0.7; }
+  .lang-globe { font-size: 15px; opacity: 0.7; filter: grayscale(1); }
   #lang-select {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -340,13 +373,12 @@
     font-size: 12px;
     font-weight: 700;
     padding: 6px 10px;
-    border-radius: 5px;
+    border-radius: 3px;
     cursor: pointer;
-    outline: none;
     transition: border-color 0.18s;
   }
   #lang-select:hover { border-color: var(--border-accent); }
-  #lang-select:focus { border-color: var(--border-accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+  #lang-select:focus { border-color: var(--border-accent); }
   #lang-select option { background: var(--bg-input); color: var(--text-primary); }
 
   /* RTL support */
@@ -362,12 +394,24 @@
   [dir="rtl"] textarea,
   [dir="rtl"] .output-textarea,
   [dir="rtl"] #raw-input { direction: ltr; text-align: left; }
+  /* R-1: API keys are code-like values, so Hebrew must not reorder them. The
+     .code-field class carries the same guarantee to any future secret/code
+     input. Ordinary Hebrew prose is untouched. */
+  [dir="rtl"] .code-field,
+  [dir="rtl"] input[type="password"] { direction: ltr; text-align: left; }
+  /* NB-2: the id and prefix columns hold code-like values ("1101637", "12-A"),
+     not prose. Under Hebrew the bidi algorithm reorders a mixed digit/letter
+     run like "12-A", so they need the same LTR guarantee #raw-input already
+     has. Scoped to [dir="rtl"], so no LTR locale is affected, and deliberately
+     NOT applied to .name-cell, which really is prose. */
+  [dir="rtl"] .id-cell,
+  [dir="rtl"] .prefix-cell { direction: ltr; text-align: left; }
 
   /* Install bar */
   #install-bar {
-    background: var(--accent-glow);
-    border: 1px solid var(--border-accent);
-    border-radius: 8px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
     padding: 14px 18px;
     margin-bottom: 20px;
     display: flex;
@@ -382,7 +426,7 @@
     font-size: 11px;
     color: var(--text-muted);
     margin-top: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
   }
 
   /* Buttons */
@@ -391,35 +435,33 @@
     align-items: center;
     gap: 8px;
     padding: 11px 22px;
-    border-radius: 5px;
-    font-family: 'Zen Kaku Gothic New', sans-serif;
+    border-radius: 3px;
+    font-family: var(--font-ui);
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     border: none;
-    transition: all 0.18s;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
     letter-spacing: 0.05em;
   }
+  /* The leading pictogram span of a button (⚡ 🔨 📋 …) keeps its size and
+     place but is shown in grey. */
+  .btn > span:first-child:not([data-i18n]):not(:only-child) { filter: grayscale(1); }
 
   .btn-primary {
-    background: var(--accent);
-    color: #0d0f14;
+    background: var(--primary);
+    color: var(--on-primary);
   }
-  .btn-primary:hover {
-    background: #00ffb2;
-    box-shadow: 0 0 20px rgba(0,229,160,0.35);
-    transform: translateY(-1px);
-  }
-  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:hover { background: var(--primary-hover); }
 
   .btn-secondary {
-    background: transparent;
-    color: var(--text-secondary);
+    background: var(--bg-card);
+    color: var(--text-primary);
     border: 1px solid var(--border);
   }
   .btn-secondary:hover {
+    background: #33363c;
     border-color: var(--border-accent);
-    color: var(--accent);
   }
 
   .btn-ghost {
@@ -429,7 +471,6 @@
   }
   .btn-ghost:hover {
     background: var(--accent-glow);
-    box-shadow: 0 0 12px var(--accent-glow);
   }
 
   .btn:disabled {
@@ -445,15 +486,19 @@
     flex-wrap: wrap;
     align-items: center;
   }
+  /* Shift+Tab onto the user-dictionary buttons from below scrolls them flush
+     with the viewport top at 901/941 CSS px, which cut the ring's top edge.
+     scroll-margin keeps 8px of room (2px ring + 2px offset + margin). */
+  .btn-row:has(#open-dict-manager) > .btn { scroll-margin: 8px; }
 
   /* Progress / status */
   .status-bar {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 3px;
     padding: 12px 16px;
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     color: var(--text-secondary);
     margin-top: 14px;
     min-height: 42px;
@@ -482,7 +527,7 @@
   /* Table */
   .table-wrap {
     overflow-x: auto;
-    border-radius: 5px;
+    border-radius: 3px;
     border: 1px solid var(--border);
   }
 
@@ -522,14 +567,14 @@
   }
 
   .id-cell {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
     color: var(--text-secondary);
     white-space: nowrap;
   }
 
   .prefix-cell {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
     color: var(--accent);
     font-weight: 600;
@@ -543,29 +588,23 @@
   .trans-input {
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 3px;
     padding: 7px 10px;
-    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-family: var(--font-ui);
     font-size: 13px;
     color: var(--text-primary);
     width: 100%;
     min-width: 180px;
-    outline: none;
-    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    transition: border-color 0.18s, background 0.18s;
   }
 
   .trans-input:focus {
     border-color: var(--border-accent);
-    box-shadow: 0 0 0 2px var(--accent-glow);
   }
 
   .trans-input.is-new {
     background: var(--warn-dim);
-    border-color: rgba(245,197,24,0.4);
-  }
-
-  .trans-input.is-new:focus {
-    box-shadow: 0 0 0 2px rgba(245,197,24,0.15);
+    border-color: rgba(224,181,65,0.45);
   }
 
   .trans-input.short-input {
@@ -592,26 +631,46 @@
     margin-left: 6px;
   }
 
+  /* 2.0.0: 旧セッション由来で「要確認」の行 */
+  .review-tag {
+    display: inline-block;
+    background: var(--warn-dim);
+    border: 1px solid rgba(245,197,24,0.4);
+    color: var(--warn);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-inline-start: 6px;
+  }
+  .review-confirm.btn {
+    font-size: 12px;
+    padding: 4px 10px;
+    min-height: 28px;
+    margin-inline-start: 6px;
+    vertical-align: middle;
+  }
+
   /* Output textarea */
   .output-textarea {
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 3px;
     padding: 16px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
-    color: #a8ffd9;
+    color: #cfd5dd;
     resize: vertical;
     min-height: 200px;
     width: 100%;
-    outline: none;
     line-height: 1.8;
   }
 
   /* Alert */
   .alert {
     padding: 12px 16px;
-    border-radius: 5px;
+    border-radius: 3px;
     font-size: 12.5px;
     margin-bottom: 16px;
     display: flex;
@@ -672,7 +731,7 @@
   }
 
   .stat-chip span {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 18px;
     font-weight: 600;
     color: var(--accent);
@@ -696,7 +755,7 @@
   .spinner {
     width: 14px;
     height: 14px;
-    border: 2px solid rgba(0,229,160,0.2);
+    border: 2px solid rgba(110,168,230,0.2);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -712,15 +771,413 @@
     100% { opacity: 0; }
   }
   .copy-ok { animation: fadeOut 1.8s forwards; }
+
+  /* W-1: honour prefers-reduced-motion. Decorative motion stops, but every
+     state change stays perceivable. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    /* The spinner still has to read as "working", so keep it visible rather
+       than let the blanket rule freeze it mid-rotation. */
+    .spinner {
+      animation: none !important;
+      opacity: 1;
+      border-top-color: var(--accent);
+    }
+    /* fadeOut exists to hide the "copied" confirmation. Collapsing it to
+       0.01ms would hide that confirmation instantly, so disable the animation
+       and let the existing 1800ms JS timeout restore the button. */
+    .copy-ok { animation: none !important; opacity: 1; }
+  }
+
+  /* W-2: narrow viewport. The header was a non-wrapping 3-item flex row, so at
+     375px the language selector collapsed to a 22px-wide target and pushed
+     ~2px past the viewport in en/de/fr/la. */
+  #lang-select {
+    min-width: 44px;
+    min-height: 32px;
+  }
+  .lang-select-wrap { flex-shrink: 0; }
+
+  /* SC 2.5.8 target size (minimum), Level AA. The dictionary manager renders
+     unstyled native controls, so in a Latin locale a UA <button> is only 19px
+     tall -- measured in Chromium: Full Restore 145.50 x 19.00 in en and he, at
+     1280, 640 (=200% zoom) and 320 CSS px alike. The spacing exception does not
+     rescue it either: the ops stack 3px apart, so two adjacent triggers have
+     their centres 22px apart and their 24px circles intersect.
+     Japanese was NOT a pass before this rule, and an earlier version of this
+     comment was wrong to say it was. The CJK fallback font does lift SOME
+     Japanese controls to 24px -- every manager <button> cleared the floor in
+     ja -- but the manager search input .dm-q stayed 173.00 x 19.00 in ja and
+     failed the criterion at 1280, 640 and 320 CSS px alike. The spacing
+     exception did not rescue that one either: a 24px circle centred on .dm-q
+     falls 9.50px from the .dm-mode box, so it intersects that target. All
+     three locales (en, ja and he) were therefore non-conformant before this
+     rule. HOW MANY targets were undersized is deliberately not pinned here:
+     it moves with the font, the loaded dataset and the viewport (measured 84
+     / 60 / 60 in en and he, 1 / 1 / 61 in ja, at 1280 / 640 / 320 CSS px).
+     The block axis is what this rule fixes, and for the four ops it is the
+     only short one (the narrowest measured 30.7px wide). The inline axis is
+     short only inside the row-action column, where a CJK label wraps at 320
+     CSS px (measured 22.81px wide in ja); this rule does not claim to cover
+     that. The hidden .fmlbak/.fmlport/.fmlpkg pickers are excluded on
+     purpose: display:none leaves no target to size, and the real target is
+     the button next to it. */
+  #fm-dict-manager button,
+  #fm-dict-manager input:not([type="file"]) {
+    min-block-size: 24px;
+  }
+  /* SC 1.4.10 reflow, and the SC 2.1.1 / 2.5.8 operability that depends on
+     it, for the manager claim table. The claim table is a data table, so the
+     two-dimensional-layout exception in 1.4.10 lets it keep a horizontal
+     axis at 320 CSS px -- but it must not be CLIPPED into unusability, and
+     it was. It had no scroll container of its own, so the nearest box that
+     bounded it was .step-panel overflow:hidden. Measured in Chromium at 320
+     CSS px over 12 rows migrated through the production import + legacy
+     migration path: the panel was 290px wide against a 546px scroll width in
+     en/he (487px in ja), and all 60 .dm-act triggers sat at 0.00px visible
+     width with 0 of 60 reachable by pointer, in en, ja and he alike. In en
+     and ja the actions ran off the inline-end; in he they ran off the other
+     side. Document-level horizontal overflow was 0px in every one of the
+     nine cells, which is exactly why an overflow-only check called it a pass.
+     The scroll box is this wrapper -- not .step-panel, not the document --
+     so the page itself still has no horizontal overflow. An overflow:auto
+     box clips in BOTH axes even when only one of them scrolls, and the
+     scrollable overflow area includes the padding box, so the 4px padding is
+     what keeps the 2px focus ring at its 2px offset clear of the clip edge
+     on every side. Logical properties only, so en/ja scroll toward the
+     inline-end and he toward the other side from the same declaration. */
+  #fm-dict-manager .dm-table-scroll {
+    max-inline-size: 100%;
+    overflow-x: auto;
+    padding: 4px;
+  }
+  /* Dictionary manager look: the manager renders plain native controls, so
+     without these rules it showed grey UA buttons, white fieldset frames and
+     controls packed with no gaps inside the dark page. Everything below only
+     restyles what is already there -- same elements, same order, same
+     behaviour -- using the page's own tokens (cards, borders, radii, the
+     .btn-secondary outline button, field-label captions). Logical properties
+     only, so he mirrors from the same declarations. No rule here sets a
+     height, so the 24px target-size floor above still holds; row-action
+     buttons measure >= 24px with their padding. No text-transform either: in
+     Chromium it would also change the accessible names. */
+  #fm-dict-manager .dm-root {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-block-start: 18px;
+    padding: 18px 20px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  #fm-dict-manager .dm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-block-end: 12px;
+    border-block-end: 1px solid var(--border);
+  }
+  #fm-dict-manager .dm-head strong {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  #fm-dict-manager button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: #33363c;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: border-color 0.18s, color 0.18s, background 0.18s;
+  }
+  #fm-dict-manager button:hover:not(:disabled) {
+    background: #3b3f46;
+    border-color: var(--border-accent);
+  }
+  #fm-dict-manager button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  #fm-dict-manager .dm-go {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+  }
+  #fm-dict-manager .dm-go:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: var(--on-primary);
+  }
+  #fm-dict-manager .dm-reset {
+    color: #ff8fa3;
+    border-color: rgba(255,77,109,0.4);
+    background: rgba(255,77,109,0.06);
+  }
+  #fm-dict-manager .dm-reset:hover:not(:disabled) {
+    color: #ff8fa3;
+    border-color: rgba(255,77,109,0.7);
+    background: rgba(255,77,109,0.12);
+  }
+  #fm-dict-manager input[type="search"],
+  #fm-dict-manager input[type="text"],
+  #fm-dict-manager select {
+    inline-size: 100%;
+    margin: 0;
+    padding: 9px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  #fm-dict-manager .dm-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  #fm-dict-manager .dm-q { flex: 2 1 220px; inline-size: auto; }
+  #fm-dict-manager .dm-mode-label { flex: 1 1 180px; }
+  /* Search is easier to spot: a magnifier inside the field (a CSS image, not
+     text, so the accessible name is unchanged) and a one-line hint that
+     names the option for Japanese readings and the Enter / Esc keys. */
+  #fm-dict-manager input.dm-q {
+    padding-inline-start: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.5' fill='none' stroke='%238a9099' stroke-width='1.5'/%3E%3Cpath d='M9.4 9.4 13 13' stroke='%238a9099' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 11px center;
+  }
+  [dir="rtl"] #fm-dict-manager input.dm-q { background-position: right 11px center; }
+  #fm-dict-manager .dm-search-hint {
+    flex-basis: 100%;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+    /* he falls back to the English sentence; plaintext keeps its quotes and
+       full stop in place instead of letting the RTL paragraph reorder them. */
+    unicode-bidi: plaintext;
+  }
+  [dir="rtl"] #fm-dict-manager .dm-search-hint { text-align: right; }
+  /* The clear-search button must not take width from the field, the match
+     select or Search, so above the narrow layout it sits at the end of the
+     hint line (focus order stays field, select, Search, clear). At <=560px
+     it already has room beside Search, where it stays in DOM order. */
+  @media (min-width: 561px) {
+    #fm-dict-manager .dm-search-hint { order: 1; flex: 1 1 calc(100% - 160px); align-self: center; }
+    #fm-dict-manager .dm-clear { order: 2; }
+  }
+  #fm-dict-manager .dm-mode-label,
+  #fm-dict-manager .dm-pkg-trust,
+  #fm-dict-manager .dm-undo-batch {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #fm-dict-manager .dm-mode-label > span,
+  #fm-dict-manager .dm-pkg-trust > span,
+  #fm-dict-manager .dm-undo-batch > span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+  #fm-dict-manager .dm-table-scroll {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  #fm-dict-manager .dm-table { min-inline-size: 640px; }
+  #fm-dict-manager .dm-table th,
+  #fm-dict-manager .dm-table td { padding: 8px 12px; text-align: start; }
+  #fm-dict-manager .dm-table td { font-size: 12.5px; }
+  #fm-dict-manager .dm-act { white-space: nowrap; }
+  #fm-dict-manager .dm-act button { padding: 4px 10px; font-size: 11.5px; }
+  #fm-dict-manager .dm-act button + button { margin-inline-start: 4px; }
+  #fm-dict-manager .dm-empty {
+    padding: 18px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+  #fm-dict-manager .dm-pager,
+  #fm-dict-manager .dm-tools,
+  #fm-dict-manager .dm-review-pager,
+  #fm-dict-manager .dm-op,
+  #fm-dict-manager .dm-rq-act {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+  }
+  #fm-dict-manager .dm-op { margin-block-start: 10px; }
+  #fm-dict-manager .dm-pageinfo,
+  #fm-dict-manager .dm-rq-info,
+  #fm-dict-manager .dm-attn-info {
+    color: var(--text-secondary);
+    font-size: 12.5px;
+  }
+  #fm-dict-manager .dm-health {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  #fm-dict-manager .dm-hchip {
+    padding: 2px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  #fm-dict-manager .dm-banner {
+    padding: 10px 14px;
+    background: rgba(245,197,24,0.1);
+    border: 1px solid rgba(245,197,24,0.35);
+    border-radius: 3px;
+    color: #f5c518;
+    font-size: 12.5px;
+  }
+  #fm-dict-manager .dm-detail {
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  #fm-dict-manager .dm-kv { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  #fm-dict-manager .dm-kv b { min-inline-size: 8em; color: var(--text-secondary); font-weight: 600; }
+  #fm-dict-manager fieldset {
+    margin: 0;
+    padding: 12px 16px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    min-inline-size: 0;
+  }
+  #fm-dict-manager legend {
+    padding-inline: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+  }
+  #fm-dict-manager fieldset small,
+  #fm-dict-manager .dm-pwa-size {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  #fm-dict-manager fieldset > small { display: block; margin-block-end: 4px; }
+  #fm-dict-manager .dm-pwa-size { flex-basis: 100%; }
+  #fm-dict-manager .dm-rq,
+  #fm-dict-manager .dm-attn,
+  #fm-dict-manager .dm-pkg {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-block-start: 8px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  #fm-dict-manager .dm-danger {
+    margin-block-start: 14px;
+    padding-block-start: 12px;
+    border-block-start: 1px dashed rgba(255,77,109,0.3);
+  }
+  /* Keyboard focus on the row actions when the claim table scrolls. Chrome
+     scrolls a focused control into .dm-table-scroll only when it is entirely
+     outside the box; a control that is partly inside stays partly clipped.
+     With the five actions on one line the cell was wider than the box at 320
+     and 375 CSS px, and in every row one Tab / Shift+Tab stop was left
+     15-93% visible with its ring cut (ja, en and he alike). Stacking alone is
+     not enough either: at in-between widths the column straddles the box
+     edge before any scroll. So on narrow screens the actions stack in one
+     column of equal width and that column sticks to the inline-end edge of
+     the box: every action is fully inside the box at any scroll position,
+     and the other columns scroll underneath it. Opaque backgrounds keep the
+     scrolled text from showing through, and the -4px inset covers the box's
+     4px padding, where it otherwise peeked out.
+     The sticky column is NOT tied to a viewport width. Whether the table
+     overflows depends on the labels, the data and the box, not on the
+     screen: with the actions back on one line just above the stacking
+     breakpoint, en/he overflowed at 901-950 CSS px and each row's last
+     action was again left 40-93% visible. So the column is sticky at every
+     width. A sticky cell only moves when the table actually overflows, so a
+     wide table that fits (1280) renders exactly as before, and the
+     backgrounds are the ones already painted there: the header row is
+     --bg-card, a body row shows the box's --bg-panel, and the hover tint is
+     the same 2% white the row itself gets. The breakpoint below now only
+     picks the compact stacked layout, which keeps the column narrow.
+     Separately, at every width (1280 too) Chrome scrolls a focused control
+     flush with the viewport's top or bottom edge, which cut the 2px ring at
+     its 2px offset; scroll-margin keeps 8px of room around it. */
+  #fm-dict-manager .dm-act button { scroll-margin: 8px; }
+  #fm-dict-manager .dm-table th:last-child,
+  #fm-dict-manager .dm-act {
+    position: sticky;
+    inset-inline-end: -4px;
+  }
+  #fm-dict-manager .dm-table th:last-child { background: var(--bg-card); }
+  #fm-dict-manager .dm-act {
+    background: var(--bg-panel);
+    transition: background-color 0.15s;
+  }
+  #fm-dict-manager .dm-table tbody tr:hover .dm-act {
+    background: color-mix(in srgb, var(--bg-panel), #fff 2%);
+  }
+  @media (max-width: 900px) {
+    #fm-dict-manager .dm-table th:last-child,
+    #fm-dict-manager .dm-act { border-inline-start: 1px solid var(--border); }
+    #fm-dict-manager .dm-act button { display: flex; inline-size: 100%; }
+    #fm-dict-manager .dm-act button + button { margin-inline-start: 0; margin-block-start: 4px; }
+  }
+  @media (max-width: 560px) {
+    #fm-dict-manager .dm-root { padding: 14px 12px 16px; }
+    #fm-dict-manager fieldset { padding: 10px 12px 12px; }
+    #fm-dict-manager .dm-q,
+    #fm-dict-manager .dm-mode-label { flex-basis: 100%; }
+  }
+  @media (max-width: 560px) {
+    .header { flex-wrap: wrap; align-items: flex-start; }
+    .container { padding-left: 14px; padding-right: 14px; }
+    .step-header, .step-body { padding-left: 16px; padding-right: 16px; }
+    .header-logo { font-size: 40px; }
+  }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main-content" data-i18n="skip_main">メインコンテンツへスキップ</a>
 <div class="container">
 
   <!-- Header -->
-  <div class="header">
+  <header class="header">
     <div>
-      <div class="header-logo">FMlnc<span style="color:#00b8d9;font-size:36px;">Gen</span></div>
+      <h1 class="header-logo">FMlnc<span class="logo-sub" style="font-size:36px;">Gen</span></h1>
     </div>
     <div style="padding-bottom:10px;flex:1;">
       <div class="header-sub">Football Manager .lnc <span data-i18n="header_sub">コードジェネレーター</span> <span class="badge" data-i18n="badge_ai">AI翻訳対応</span></div>
@@ -739,7 +1196,7 @@
         <option value="he">עברית</option>
       </select>
     </div>
-  </div>
+  </header>
 
   <!-- Install prompt -->
   <div id="install-bar" style="display:none;"></div>
@@ -747,18 +1204,20 @@
   <!-- Alert area -->
   <div id="alert-area"></div>
 
+  <main id="main-content" tabindex="-1">
+
   <!-- STEP 1: Setup & Input -->
   <div class="step-panel">
     <div class="step-header">
       <div class="step-num">01</div>
       <div>
-        <div class="step-title" data-i18n="step1_title">セットアップ＆データ入力</div>
+        <h2 class="step-title" data-i18n="step1_title">セットアップ＆データ入力</h2>
         <div class="step-desc" data-i18n="step1_desc">Gemini APIキーを設定し、クラブデータを貼り付けてください</div>
       </div>
     </div>
     <div class="step-body">
       <div class="field-group">
-        <label class="field-label" data-i18n="label_provider">APIプロバイダ</label>
+        <label class="field-label" for="provider-select" data-i18n="label_provider">APIプロバイダ</label>
         <select id="provider-select" onchange="onProviderChange()">
           <option value="gemini">Google Gemini</option>
           <option value="groq">Groq（高速・制限ゆるめ）</option>
@@ -767,47 +1226,42 @@
       </div>
 
       <div class="field-group">
-        <label class="field-label">Gemini APIキー</label>
+        <label class="field-label" for="api-key-gemini" data-i18n="label_apikey">Gemini APIキー</label>
         <div class="input-wrap">
-          <input type="password" id="api-key-gemini" placeholder="AIzaSy..." autocomplete="off">
+          <input type="password" id="api-key-gemini" class="code-field" placeholder="AIzaSy..." autocomplete="off">
           <button class="toggle-vis" onclick="toggleApiVis('api-key-gemini')" title="表示/非表示">👁</button>
         </div>
         <div class="hint">※ Google AI Studio (aistudio.google.com) で無料取得。翻訳と画像抽出に使います。</div>
       </div>
 
       <div class="field-group">
-        <label class="field-label">Groq APIキー <span style="color:var(--text-muted);font-weight:400;">（任意）</span></label>
+        <label class="field-label" for="api-key-groq"><span data-i18n="label_apikey_groq">Groq APIキー</span> <span style="color:var(--text-muted);font-weight:400;" data-i18n="label_optional">（任意）</span></label>
         <div class="input-wrap">
-          <input type="password" id="api-key-groq" placeholder="gsk_..." autocomplete="off">
+          <input type="password" id="api-key-groq" class="code-field" placeholder="gsk_..." autocomplete="off">
           <button class="toggle-vis" onclick="toggleApiVis('api-key-groq')" title="表示/非表示">👁</button>
         </div>
         <div class="hint">※ console.groq.com で無料取得（クレカ不要）。プロバイダで Groq を選んだときに、翻訳・画像抽出の両方で使われます。</div>
       </div>
 
       <div class="field-group">
-        <label class="field-label" data-i18n="label_model">モデル選択</label>
-        <div class="model-controls">
-          <select id="model-select">
-            <optgroup label="Gemini" id="optgroup-gemini">
-              <option value="gemini-2.5-flash">gemini-2.5-flash（推奨・無料枠あり）</option>
-              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite（高速・軽量・無料枠多め）</option>
-              <option value="gemini-2.5-pro">gemini-2.5-pro（高品質・無料枠少なめ）</option>
-            </optgroup>
-            <optgroup label="Groq" id="optgroup-groq" style="display:none;">
-              <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile（高品質）</option>
-              <option value="meta-llama/llama-4-scout-17b-16e-instruct">llama-4-scout（高速）</option>
-            </optgroup>
-          </select>
-          <button type="button" class="btn btn-secondary model-refresh-btn" id="model-refresh-btn" onclick="refreshAvailableModels()">
-            <span>↻</span> <span data-i18n="btn_refresh_models">モデルを再取得</span>
-          </button>
-        </div>
-        <div class="hint" id="model-status" data-state="idle" data-i18n="model_status_no_key">APIキーを入力すると、利用可能なモデルを自動取得します。</div>
-        <div class="hint" data-i18n="hint_model">※ 一覧に表示されても、残りの無料枠や利用上限までは判定できません。</div>
+        <label class="field-label" for="model-select" data-i18n="label_model">モデル選択</label>
+        <select id="model-select">
+          <optgroup label="Gemini" id="optgroup-gemini">
+            <option value="gemini-3.6-flash">gemini-3.6-flash（推奨・既定）</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash（無料枠あり）</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite（高速・軽量・無料枠多め）</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro（高品質・無料枠少なめ）</option>
+          </optgroup>
+          <optgroup label="Groq" id="optgroup-groq" style="display:none;">
+            <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile（高品質）</option>
+            <option value="meta-llama/llama-4-scout-17b-16e-instruct">llama-4-scout（高速）</option>
+          </optgroup>
+        </select>
+        <div class="hint" data-i18n="hint_model">※ 「quota / limit: 0」エラーが出る場合は別のモデルを選んでください。</div>
       </div>
 
       <div class="field-group">
-        <label class="field-label" data-i18n="label_rate">リクエスト間隔（レート制限対策）</label>
+        <label class="field-label" for="rate-gap" data-i18n="label_rate">リクエスト間隔（レート制限対策）</label>
         <select id="rate-gap">
           <option value="13000" data-i18n="rate_safe">安全（13秒間隔／無料枠 5 RPM 向け・推奨）</option>
           <option value="5000" data-i18n="rate_std">標準（5秒間隔／15 RPM 向け）</option>
@@ -818,7 +1272,7 @@
       </div>
 
       <div class="field-group">
-        <label class="field-label" data-i18n="label_batch">バッチサイズ（1リクエストでまとめる件数）</label>
+        <label class="field-label" for="batch-size" data-i18n="label_batch">バッチサイズ（1リクエストでまとめる件数）</label>
         <select id="batch-size">
           <option value="15" data-i18n="batch_15">15件ずつ（推奨・無料枠に優しい）</option>
           <option value="20" data-i18n="batch_20">20件ずつ</option>
@@ -851,7 +1305,7 @@
       </div>
 
       <div class="field-group">
-        <label class="field-label" data-i18n="label_target">対象</label>
+        <label class="field-label" for="target-select" data-i18n="label_target">対象</label>
         <select id="target-select" onchange="onTargetChange()">
           <option value="club" data-i18n="target_club">クラブ名</option>
           <option value="comp" data-i18n="target_comp">大会名</option>
@@ -862,7 +1316,7 @@
       </div>
 
       <div class="field-group">
-        <label class="field-label"><span id="data-label">クラブデータ（1行1クラブ）</span></label>
+        <label class="field-label" for="raw-input"><span id="data-label">クラブデータ（1行1クラブ）</span></label>
         <textarea id="raw-input" placeholder="KE wervik 539859&#10;pays vert ostiches ath 3200572&#10;SV wevelgem 12345&#10;FC london city 999001"></textarea>
         <div class="hint"><span id="data-hint">形式: [プレフィックス(任意)] [クラブ名] [ID数字] — スクショ抽出結果もここに入ります</span></div>
       </div>
@@ -898,9 +1352,14 @@
           <button class="btn btn-secondary" onclick="cleanupUserDict()" style="font-size:12px;" data-i18n="btn_dictcleanup">
             🧹 カタカナだけの不要エントリを掃除
           </button>
+          <button class="btn btn-secondary" id="open-dict-manager" type="button" style="font-size:12px;" aria-expanded="false" aria-controls="fm-dict-manager" data-i18n="btn_dictmanager">
+            🗂 辞書マネージャーを開く
+          </button>
         </div>
         <div class="hint" data-i18n="hint_dictmgmt">辞書をJSONで保存・読み込みできます。別のPCへの移行や、仲間との共有・バックアップに使えます。</div>
       </div>
+      <!-- Phase 9A: Dictionary Manager / Backup UX。開いたときだけ dictionary-manager-ui.js を dynamic import。 -->
+      <section id="fm-dict-manager" hidden aria-live="polite" tabindex="-1" aria-labelledby="open-dict-manager"></section>
     </div>
   </div>
 
@@ -909,7 +1368,7 @@
     <div class="step-header">
       <div class="step-num">02</div>
       <div>
-        <div class="step-title" data-i18n="step2_title">レビュー＆編集テーブル</div>
+        <h2 class="step-title" data-i18n="step2_title">レビュー＆編集テーブル</h2>
         <div class="step-desc" data-i18n="step2_desc">翻訳結果を確認・手動修正してください。黄色はAI翻訳または新規ワードです</div>
       </div>
     </div>
@@ -936,7 +1395,7 @@
     <div class="step-header">
       <div class="step-num">03</div>
       <div>
-        <div class="step-title" data-i18n="step3_title">出力 — .lnc コード</div>
+        <h2 class="step-title" data-i18n="step3_title">出力 — .lnc コード</h2>
         <div class="step-desc" data-i18n="step3_desc">生成された .lnc フォーマットをコピーして Football Manager に適用</div>
       </div>
     </div>
@@ -955,13 +1414,16 @@
           <span>🐞</span> <span class="errlog-label">エラーログ</span>
         </button>
       </div>
+      <label class="visually-hidden" for="output" data-i18n="step3_title">出力 — .lnc コード</label>
       <textarea class="output-textarea" id="output" placeholder='; ここに .lnc コードが生成されます&#10;; SHORT名を空欄にすると LONG と同じ値で出力されます&#10;; 例（SHORT名を入力した場合）:&#10;; "CLUB_LONG_NAME_CHANGE" 1101637 "ヴィキングル レイキャヴィーク"&#10;; "CLUB_SHORT_NAME_CHANGE" 1101637 "ヴィキングル"' oninput="updateOutputInfo()"></textarea>
       <div class="hint" id="output-info" style="margin-top:8px;" data-i18n="output_info">この欄は直接編集できます。修正してからコピー／保存してください。</div>
     </div>
   </div>
 
+  </main>
+
   <div style="text-align:center;margin-top:24px;padding:12px;color:var(--text-muted);font-size:11px;">
-    FMlncGen <span id="app-version">v1.6.0</span>
+    FMlncGen <span id="app-version">v2.0.0</span>
   </div>
 
 </div>
@@ -977,14 +1439,12 @@ const I18N = {
     step1_title: "セットアップ＆データ入力",
     step1_desc: "Gemini APIキーを設定し、クラブデータを貼り付けてください",
     label_apikey: "Gemini APIキー",
+    skip_main: "メインコンテンツへスキップ",
+    label_apikey_groq: "Groq APIキー",
+    label_optional: "（任意）",
     hint_apikey: "※ Google AI Studio (aistudio.google.com) で無料取得できます。キーはブラウザのlocalStorageに保存されます。",
     label_model: "モデル選択",
-    hint_model: "※ 一覧に表示されても、残りの無料枠や利用上限までは判定できません。",
-    btn_refresh_models: "モデルを再取得",
-    model_status_no_key: "APIキーを入力すると、利用可能なモデルを自動取得します。",
-    model_status_loading: "利用可能なモデルを確認中…",
-    model_status_success: (n) => `${n} 件のモデルを取得しました。`,
-    model_status_error: "モデル一覧を取得できませんでした。現在の候補をそのまま使用できます。",
+    hint_model: "※ 「quota / limit: 0」エラーが出る場合は別のモデルを選んでください。2.0-flashの無料枠が0になっているアカウントが多発しています。",
     label_rate: "リクエスト間隔（レート制限対策）",
     rate_safe: "安全（13秒間隔／無料枠 5 RPM 向け・推奨）",
     rate_std: "標準（5秒間隔／15 RPM 向け）",
@@ -1001,7 +1461,7 @@ const I18N = {
     btn_run: "解析して翻訳開始", btn_clear: "クリア",
     status_idle: "待機中 — データを入力して「解析して翻訳開始」をクリック",
     label_dictmgmt: "📚 ユーザー辞書の管理",
-    btn_dictdl: "⬇ 辞書をダウンロード", btn_dictimport: "⬆ 辞書をインポート",
+    btn_dictdl: "⬇ 辞書をダウンロード", btn_dictimport: "⬆ 辞書をインポート", btn_dictmanager: "🗂 辞書マネージャー",
     hint_dictmgmt: "辞書をJSONで保存・読み込みできます。別のPCへの移行や、仲間との共有・バックアップに使えます。",
     step2_title: "レビュー＆編集テーブル",
     step2_desc: "翻訳結果を確認・手動修正してください。黄色はAI翻訳または新規ワードです",
@@ -1024,6 +1484,8 @@ const I18N = {
     msg_need_key: "APIキーを入力してください。",
     msg_no_valid: "有効な行が見つかりませんでした。形式を確認してください。\n例: KE wervik 539859",
     msg_processing: (n) => `${n} 件を処理中...`,
+    msg_resolving: (d,n) => `辞書で解決中... (${d}/${n} 件)`,
+    msg_resolve_cancelled: (d,n) => `辞書解決を中断しました（${d}/${n} 件完了）。途中までの結果を表示しています。`,
     msg_translating: (a,b,p) => `AI翻訳中... (${a}/${b}) — ${p}`,
     msg_translating_batch: (b,total,done,all) => `AI翻訳中... バッチ ${b}/${total}（${done}/${all} 件完了）`,
     label_batch: "バッチサイズ（1リクエストでまとめる件数）",
@@ -1080,6 +1542,13 @@ const I18N = {
     msg_savealldict: (n) => `${n} 件を辞書に追加しました。`,
     msg_savealldict_skip: (n,sk) => `${n} 件を辞書に追加しました（原語が無い ${sk} 件は除外）。`,
     msg_restored: (n, mins) => `前回の作業を復元しました（${n} 件・約${mins}分前）。新しく始めるには「クリア」。`,
+    msg_restored_review: (n, held, mins) => `前回の作業を復元しました（${n} 件・約${mins}分前）。旧版で作られた訳のうち ${held} 件は「要確認」です。「解析して翻訳開始」で訳し直すか、行ごとに「確認」するまで .lnc に出力しません。前回の出力欄は復元していません（元のデータは保存してあります）。`,
+    warn_review_skipped: (n) => `「要確認」の ${n} 件は .lnc に出力していません。訳し直すか、行ごとに「確認」してください。`,
+    warn_session_unsaved: '旧版の作業データを退避できませんでした（保存容量の不足など）。元のデータを守るため、自動保存を止めています。編集と .lnc 生成はできますが、再読込すると今の変更は失われます。容量を空けると、次の保存で元のデータを退避してから自動保存を再開します。',
+    warn_transfail_skipped: (n) => `AI翻訳に失敗した ${n} 件は .lnc に出力していません。訳を手入力するか、もう一度翻訳してください。`,
+    review_tag: "要確認",
+    review_confirm: "確認",
+    review_confirm_aria: (name) => `${name} の訳を確認して .lnc に含める`,
     msg_lnc_none: ".lnc から CLUB_LONG / SHORT の行が見つかりませんでした。",
     msg_lnc_loaded: (n) => `.lnc を読み込みました（${n} クラブ）。`,
     filter_attn: (n) => `要対応のみ表示（${n} 件）`,
@@ -1091,14 +1560,12 @@ const I18N = {
     step1_title: "Setup & Input",
     step1_desc: "Set your Gemini API key and paste club data",
     label_apikey: "Gemini API Key",
+    skip_main: "Skip to main content",
+    label_apikey_groq: "Groq API Key",
+    label_optional: "(optional)",
     hint_apikey: "Get one free at Google AI Studio (aistudio.google.com). The key is stored in your browser's localStorage.",
     label_model: "Model",
-    hint_model: "The list cannot determine your remaining quota or usage limits.",
-    btn_refresh_models: "Refresh models",
-    model_status_no_key: "Enter an API key to automatically load available models.",
-    model_status_loading: "Checking available models…",
-    model_status_success: (n) => `Loaded ${n} available models.`,
-    model_status_error: "Could not load the model list. You can keep using the current choices.",
+    hint_model: "If you get a \"quota / limit: 0\" error, pick another model. Many accounts now have 0 free quota for 2.0-flash.",
     label_rate: "Request interval (rate-limit protection)",
     rate_safe: "Safe (13s interval / for 5 RPM free tier · recommended)",
     rate_std: "Standard (5s interval / for 15 RPM)",
@@ -1115,7 +1582,7 @@ const I18N = {
     btn_run: "Parse & Translate", btn_clear: "Clear",
     status_idle: "Idle — enter data and click \"Parse & Translate\"",
     label_dictmgmt: "📚 User dictionary",
-    btn_dictdl: "⬇ Download dictionary", btn_dictimport: "⬆ Import dictionary",
+    btn_dictdl: "⬇ Download dictionary", btn_dictimport: "⬆ Import dictionary", btn_dictmanager: "🗂 Dictionary Manager",
     hint_dictmgmt: "Save/load your dictionary as JSON — for moving to another PC, sharing with friends, or backups.",
     step2_title: "Review & Edit",
     step2_desc: "Review and manually correct the translations. Yellow = AI-translated or new word.",
@@ -1134,6 +1601,8 @@ const I18N = {
     msg_need_key: "Please enter your API key.",
     msg_no_valid: "No valid lines found. Check the format.\nExample: KE wervik 539859",
     msg_processing: (n) => `Processing ${n} items...`,
+    msg_resolving: (d,n) => `Resolving with the dictionary... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `Dictionary resolution cancelled (${d}/${n} done). Showing partial results.`,
     msg_translating: (a,b,p) => `Translating with AI... (${a}/${b}) — ${p}`,
     msg_translating_batch: (b,total,done,all) => `Translating with AI... batch ${b}/${total} (${done}/${all} done)`,
     label_batch: "Batch size (items per request)",
@@ -1190,6 +1659,13 @@ const I18N = {
     msg_savealldict: (n) => `Added ${n} entries to the dictionary.`,
     msg_savealldict_skip: (n,sk) => `Added ${n} entries (skipped ${sk} with no source term).`,
     msg_restored: (n, mins) => `Restored your previous work (${n} rows, ~${mins} min ago). Use "Clear" to start fresh.`,
+    msg_restored_review: (n, held, mins) => `Restored your previous work (${n} rows, ~${mins} min ago). ${held} reading(s) made by the previous version need checking: they stay out of the .lnc until you run "Parse & Translate" again or confirm each row. The previous output box was not restored (the original data is kept).`,
+    warn_review_skipped: (n) => `${n} row(s) that need checking were left out of the .lnc. Translate them again or confirm each row.`,
+    warn_session_unsaved: 'Work from the previous version could not be backed up (for example, browser storage is full). Autosave is paused so the original data is not overwritten. You can still edit and generate a .lnc, but current changes will be lost on reload. Once space is freed, the next save backs up the original and resumes autosave.',
+    warn_transfail_skipped: (n) => `${n} row(s) whose AI translation failed were left out of the .lnc. Type the translation in, or translate again.`,
+    review_tag: "Check",
+    review_confirm: "Confirm",
+    review_confirm_aria: (name) => `Confirm the reading for ${name} and include it in the .lnc`,
     msg_lnc_none: "No CLUB_LONG / SHORT lines found in the .lnc file.",
     msg_lnc_loaded: (n) => `Loaded .lnc (${n} clubs).`,
     filter_attn: (n) => `Show needs-attention only (${n})`,
@@ -1201,14 +1677,12 @@ const I18N = {
     step1_title: "设置与输入",
     step1_desc: "设置你的 Gemini API 密钥并粘贴俱乐部数据",
     label_apikey: "Gemini API 密钥",
+    skip_main: "跳转到主要内容",
+    label_apikey_groq: "Groq API 密钥",
+    label_optional: "（可选）",
     hint_apikey: "可在 Google AI Studio (aistudio.google.com) 免费获取。密钥保存在浏览器的 localStorage 中。",
     label_model: "模型选择",
-    hint_model: "列表无法判断剩余免费额度或使用上限。",
-    btn_refresh_models: "重新获取模型",
-    model_status_no_key: "输入 API 密钥后将自动获取可用模型。",
-    model_status_loading: "正在检查可用模型…",
-    model_status_success: (n) => `已获取 ${n} 个可用模型。`,
-    model_status_error: "无法获取模型列表。仍可继续使用当前选项。",
+    hint_model: "如果出现 \"quota / limit: 0\" 错误，请选择其他模型。很多账户的 2.0-flash 免费额度已为 0。",
     label_rate: "请求间隔（限流保护）",
     rate_safe: "安全（13秒间隔／适合 5 RPM 免费额度·推荐）",
     rate_std: "标准（5秒间隔／适合 15 RPM）",
@@ -1224,7 +1698,7 @@ const I18N = {
     btn_run: "解析并翻译", btn_clear: "清除",
     status_idle: "待机中 — 输入数据并点击\"解析并翻译\"",
     label_dictmgmt: "📚 用户词典管理",
-    btn_dictdl: "⬇ 下载词典", btn_dictimport: "⬆ 导入词典",
+    btn_dictdl: "⬇ 下载词典", btn_dictimport: "⬆ 导入词典", btn_dictmanager: "🗂 词典管理器",
     hint_dictmgmt: "可将词典保存/读取为 JSON，用于迁移到其他电脑、与好友共享或备份。",
     step2_title: "审核与编辑",
     step2_desc: "请确认并手动修正翻译。黄色 = AI 翻译或新词。",
@@ -1242,6 +1716,8 @@ const I18N = {
     msg_need_key: "请输入你的 API 密钥。",
     msg_no_valid: "未找到有效行。请检查格式。\n示例：KE wervik 539859",
     msg_processing: (n) => `正在处理 ${n} 项...`,
+    msg_resolving: (d,n) => `正在用词典解析... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `已中断词典解析（已完成 ${d}/${n}）。显示部分结果。`,
     msg_translating: (a,b,p) => `AI 翻译中... (${a}/${b}) — ${p}`,
     msg_ratelimit: (s,a,m) => `已限流… 等待 ${s} 秒后重试 (${a}/${m})`,
     msg_done: (t,d,a,u) => `完成！已处理 ${t} 项。词典:${d} / AI:${a} / 用户:${u}`,
@@ -1278,14 +1754,12 @@ const I18N = {
     step1_title: "설정 및 입력",
     step1_desc: "Gemini API 키를 설정하고 클럽 데이터를 붙여넣으세요",
     label_apikey: "Gemini API 키",
+    skip_main: "본문으로 건너뛰기",
+    label_apikey_groq: "Groq API 키",
+    label_optional: "(선택)",
     hint_apikey: "Google AI Studio (aistudio.google.com)에서 무료로 받을 수 있습니다. 키는 브라우저 localStorage에 저장됩니다.",
     label_model: "모델 선택",
-    hint_model: "목록으로 남은 무료 할당량이나 사용 한도까지 확인할 수는 없습니다.",
-    btn_refresh_models: "모델 다시 불러오기",
-    model_status_no_key: "API 키를 입력하면 사용 가능한 모델을 자동으로 불러옵니다.",
-    model_status_loading: "사용 가능한 모델을 확인하는 중…",
-    model_status_success: (n) => `사용 가능한 모델 ${n}개를 불러왔습니다.`,
-    model_status_error: "모델 목록을 불러오지 못했습니다. 현재 선택지는 계속 사용할 수 있습니다.",
+    hint_model: "\"quota / limit: 0\" 오류가 나면 다른 모델을 선택하세요. 많은 계정에서 2.0-flash 무료 할당량이 0입니다.",
     label_rate: "요청 간격 (속도 제한 방지)",
     rate_safe: "안전 (13초 간격 / 5 RPM 무료 등급용·권장)",
     rate_std: "표준 (5초 간격 / 15 RPM용)",
@@ -1301,7 +1775,7 @@ const I18N = {
     btn_run: "분석 및 번역", btn_clear: "지우기",
     status_idle: "대기 중 — 데이터를 입력하고 \"분석 및 번역\"을 클릭",
     label_dictmgmt: "📚 사용자 사전 관리",
-    btn_dictdl: "⬇ 사전 다운로드", btn_dictimport: "⬆ 사전 가져오기",
+    btn_dictdl: "⬇ 사전 다운로드", btn_dictimport: "⬆ 사전 가져오기", btn_dictmanager: "🗂 사전 관리자",
     hint_dictmgmt: "사전을 JSON으로 저장/불러올 수 있습니다. 다른 PC로 이전, 친구와 공유, 백업에 사용하세요.",
     step2_title: "검토 및 편집",
     step2_desc: "번역을 확인하고 수동으로 수정하세요. 노란색 = AI 번역 또는 새 단어.",
@@ -1319,6 +1793,8 @@ const I18N = {
     msg_need_key: "API 키를 입력하세요.",
     msg_no_valid: "유효한 줄을 찾을 수 없습니다. 형식을 확인하세요.\n예: KE wervik 539859",
     msg_processing: (n) => `${n}건 처리 중...`,
+    msg_resolving: (d,n) => `사전으로 해석 중... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `사전 해석을 중단했습니다 (${d}/${n} 완료). 중간 결과를 표시합니다.`,
     msg_translating: (a,b,p) => `AI 번역 중... (${a}/${b}) — ${p}`,
     msg_ratelimit: (s,a,m) => `속도 제한 중… ${s}초 대기 후 재시도 (${a}/${m})`,
     msg_done: (t,d,a,u) => `완료! ${t}건 처리. 사전:${d} / AI:${a} / 사용자:${u}`,
@@ -1355,14 +1831,12 @@ const I18N = {
     step1_title: "Einrichtung & Eingabe",
     step1_desc: "Gemini-API-Schlüssel festlegen und Vereinsdaten einfügen",
     label_apikey: "Gemini-API-Schlüssel",
+    skip_main: "Zum Hauptinhalt springen",
+    label_apikey_groq: "Groq-API-Schlüssel",
+    label_optional: "(optional)",
     hint_apikey: "Kostenlos bei Google AI Studio (aistudio.google.com) erhältlich. Der Schlüssel wird im localStorage des Browsers gespeichert.",
     label_model: "Modellauswahl",
-    hint_model: "Die Liste kann verbleibendes Kontingent oder Nutzungslimits nicht erkennen.",
-    btn_refresh_models: "Modelle aktualisieren",
-    model_status_no_key: "API-Schlüssel eingeben, um verfügbare Modelle automatisch zu laden.",
-    model_status_loading: "Verfügbare Modelle werden geprüft…",
-    model_status_success: (n) => `${n} verfügbare Modelle geladen.`,
-    model_status_error: "Modellliste konnte nicht geladen werden. Die aktuellen Optionen bleiben nutzbar.",
+    hint_model: "Bei \"quota / limit: 0\"-Fehler bitte ein anderes Modell wählen. Viele Konten haben jetzt 0 Freikontingent für 2.0-flash.",
     label_rate: "Anfrageintervall (Ratenbegrenzungsschutz)",
     rate_safe: "Sicher (13s Intervall / für 5 RPM Gratis-Stufe · empfohlen)",
     rate_std: "Standard (5s Intervall / für 15 RPM)",
@@ -1378,7 +1852,7 @@ const I18N = {
     btn_run: "Analysieren & Übersetzen", btn_clear: "Löschen",
     status_idle: "Bereit — Daten eingeben und \"Analysieren & Übersetzen\" klicken",
     label_dictmgmt: "📚 Benutzerwörterbuch",
-    btn_dictdl: "⬇ Wörterbuch herunterladen", btn_dictimport: "⬆ Wörterbuch importieren",
+    btn_dictdl: "⬇ Wörterbuch herunterladen", btn_dictimport: "⬆ Wörterbuch importieren", btn_dictmanager: "🗂 Wörterbuch-Manager",
     hint_dictmgmt: "Wörterbuch als JSON speichern/laden — zum Übertragen auf einen anderen PC, Teilen mit Freunden oder als Backup.",
     step2_title: "Prüfen & Bearbeiten",
     step2_desc: "Übersetzungen prüfen und manuell korrigieren. Gelb = KI-übersetzt oder neues Wort.",
@@ -1396,6 +1870,8 @@ const I18N = {
     msg_need_key: "Bitte API-Schlüssel eingeben.",
     msg_no_valid: "Keine gültigen Zeilen gefunden. Format prüfen.\nBeispiel: KE wervik 539859",
     msg_processing: (n) => `Verarbeite ${n} Einträge...`,
+    msg_resolving: (d,n) => `Auflösung über das Wörterbuch... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `Wörterbuch-Auflösung abgebrochen (${d}/${n} erledigt). Teilergebnisse werden angezeigt.`,
     msg_translating: (a,b,p) => `KI-Übersetzung... (${a}/${b}) — ${p}`,
     msg_ratelimit: (s,a,m) => `Ratenbegrenzung… warte ${s}s und versuche erneut (${a}/${m})`,
     msg_done: (t,d,a,u) => `Fertig! ${t} verarbeitet. Wörterb.:${d} / KI:${a} / Benutzer:${u}`,
@@ -1432,14 +1908,12 @@ const I18N = {
     step1_title: "Configuration & Saisie",
     step1_desc: "Définissez votre clé API Gemini et collez les données des clubs",
     label_apikey: "Clé API Gemini",
+    skip_main: "Aller au contenu principal",
+    label_apikey_groq: "Clé API Groq",
+    label_optional: "(facultatif)",
     hint_apikey: "Gratuite sur Google AI Studio (aistudio.google.com). La clé est stockée dans le localStorage du navigateur.",
     label_model: "Choix du modèle",
-    hint_model: "La liste ne permet pas de connaître le quota restant ni les limites d'utilisation.",
-    btn_refresh_models: "Actualiser les modèles",
-    model_status_no_key: "Saisissez une clé API pour charger automatiquement les modèles disponibles.",
-    model_status_loading: "Recherche des modèles disponibles…",
-    model_status_success: (n) => `${n} modèles disponibles chargés.`,
-    model_status_error: "Impossible de charger la liste. Les choix actuels restent utilisables.",
+    hint_model: "En cas d'erreur \"quota / limit: 0\", choisissez un autre modèle. De nombreux comptes ont désormais 0 quota gratuit pour 2.0-flash.",
     label_rate: "Intervalle des requêtes (protection anti-limite)",
     rate_safe: "Sûr (intervalle 13s / pour palier gratuit 5 RPM · recommandé)",
     rate_std: "Standard (intervalle 5s / pour 15 RPM)",
@@ -1455,7 +1929,7 @@ const I18N = {
     btn_run: "Analyser & Traduire", btn_clear: "Effacer",
     status_idle: "En attente — saisissez des données et cliquez sur \"Analyser & Traduire\"",
     label_dictmgmt: "📚 Dictionnaire utilisateur",
-    btn_dictdl: "⬇ Télécharger le dictionnaire", btn_dictimport: "⬆ Importer un dictionnaire",
+    btn_dictdl: "⬇ Télécharger le dictionnaire", btn_dictimport: "⬆ Importer un dictionnaire", btn_dictmanager: "🗂 Gestionnaire de dictionnaire",
     hint_dictmgmt: "Enregistrez/chargez le dictionnaire en JSON — pour migrer vers un autre PC, partager avec des amis ou sauvegarder.",
     step2_title: "Vérifier & Modifier",
     step2_desc: "Vérifiez et corrigez les traductions manuellement. Jaune = traduit par IA ou nouveau mot.",
@@ -1473,6 +1947,8 @@ const I18N = {
     msg_need_key: "Veuillez saisir votre clé API.",
     msg_no_valid: "Aucune ligne valide trouvée. Vérifiez le format.\nExemple : KE wervik 539859",
     msg_processing: (n) => `Traitement de ${n} éléments...`,
+    msg_resolving: (d,n) => `Résolution via le dictionnaire... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `Résolution du dictionnaire annulée (${d}/${n} terminés). Résultats partiels affichés.`,
     msg_translating: (a,b,p) => `Traduction IA... (${a}/${b}) — ${p}`,
     msg_ratelimit: (s,a,m) => `Limite atteinte… attente de ${s}s puis nouvel essai (${a}/${m})`,
     msg_done: (t,d,a,u) => `Terminé ! ${t} traités. Dict.:${d} / IA:${a} / Utilisateur:${u}`,
@@ -1509,14 +1985,12 @@ const I18N = {
     step1_title: "Praeparatio & Initium",
     step1_desc: "Clavem API Gemini constitue et data sodalitatum insere",
     label_apikey: "Clavis API Gemini",
+    skip_main: "Ad contentum principalem transire",
+    label_apikey_groq: "Clavis API Groq",
+    label_optional: "(optionale)",
     hint_apikey: "Gratis apud Google AI Studio (aistudio.google.com) obtinetur. Clavis in localStorage navigatri servatur.",
     label_model: "Delectus Exemplaris",
-    hint_model: "Index copiam reliquam vel limites usus cognoscere non potest.",
-    btn_refresh_models: "Exemplaria renova",
-    model_status_no_key: "Clavem API insere ut exemplaria praesto automatice legantur.",
-    model_status_loading: "Exemplaria praesto explorantur…",
-    model_status_success: (n) => `${n} exemplaria praesto lecta sunt.`,
-    model_status_error: "Index exemplarium legi non potuit. Delectus praesentes adhuc adhiberi possunt.",
+    hint_model: "Si error \"quota / limit: 0\" apparet, aliud exemplar elige. Multae rationes nunc 0 copiam gratuitam pro 2.0-flash habent.",
     label_rate: "Intervallum Petitionum (tutela limitis)",
     rate_safe: "Tutum (intervallum 13s / pro gradu gratuito 5 RPM · commendatum)",
     rate_std: "Vulgare (intervallum 5s / pro 15 RPM)",
@@ -1532,7 +2006,7 @@ const I18N = {
     btn_run: "Resolvere & Vertere", btn_clear: "Delere",
     status_idle: "Exspectans — data insere et \"Resolvere & Vertere\" preme",
     label_dictmgmt: "📚 Administratio Glossarii",
-    btn_dictdl: "⬇ Glossarium demittere", btn_dictimport: "⬆ Glossarium importare",
+    btn_dictdl: "⬇ Glossarium demittere", btn_dictimport: "⬆ Glossarium importare", btn_dictmanager: "🗂 Administrator Glossarii",
     hint_dictmgmt: "Glossarium ut JSON serva/onera — ad migrationem in alium computatrum, communicationem cum amicis, vel exemplar.",
     step2_title: "Recensere & Emendare",
     step2_desc: "Translationes recense et manu emenda. Flavum = ab AI versum vel novum verbum.",
@@ -1550,6 +2024,8 @@ const I18N = {
     msg_need_key: "Quaeso clavem API insere.",
     msg_no_valid: "Nullae lineae validae inventae. Formam inspice.\nExemplum: KE wervik 539859",
     msg_processing: (n) => `${n} elementa tractantur...`,
+    msg_resolving: (d,n) => `Per lexicon resolvens... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `Resolutio lexici intermissa (${d}/${n} perfecta). Resultata partialia monstrantur.`,
     msg_translating: (a,b,p) => `Translatio AI... (${a}/${b}) — ${p}`,
     msg_ratelimit: (s,a,m) => `Limes attactus… ${s}s exspecta, deinde retempta (${a}/${m})`,
     msg_done: (t,d,a,u) => `Perfectum! ${t} tractata. Gloss.:${d} / AI:${a} / Usor:${u}`,
@@ -1586,14 +2062,12 @@ const I18N = {
     step1_title: "הגדרה וקלט",
     step1_desc: "הגדירו את מפתח ה-API של Gemini והדביקו נתוני מועדונים",
     label_apikey: "מפתח API של Gemini",
+    skip_main: "דלג לתוכן הראשי",
+    label_apikey_groq: "מפתח API של Groq",
+    label_optional: "(אופציונלי)",
     hint_apikey: "ניתן לקבל בחינם ב-Google AI Studio ‏(aistudio.google.com). המפתח נשמר ב-localStorage של הדפדפן.",
     label_model: "בחירת מודל",
-    hint_model: "הרשימה אינה יכולה לזהות את המכסה שנותרה או את מגבלות השימוש.",
-    btn_refresh_models: "רענון מודלים",
-    model_status_no_key: "הזינו מפתח API כדי לטעון אוטומטית מודלים זמינים.",
-    model_status_loading: "בודק מודלים זמינים…",
-    model_status_success: (n) => `נטענו ${n} מודלים זמינים.`,
-    model_status_error: "לא ניתן לטעון את רשימת המודלים. אפשר להמשיך להשתמש באפשרויות הנוכחיות.",
+    hint_model: "אם מופיעה שגיאת \"quota / limit: 0\", בחרו מודל אחר. בחשבונות רבים מכסת החינם ל-2.0-flash היא 0.",
     label_rate: "מרווח בקשות (הגנה מפני הגבלת קצב)",
     rate_safe: "בטוח (מרווח 13 שניות / למכסת חינם 5 RPM · מומלץ)",
     rate_std: "רגיל (מרווח 5 שניות / ל-15 RPM)",
@@ -1609,7 +2083,7 @@ const I18N = {
     btn_run: "נתח ותרגם", btn_clear: "נקה",
     status_idle: "ממתין — הזינו נתונים ולחצו \"נתח ותרגם\"",
     label_dictmgmt: "📚 ניהול מילון משתמש",
-    btn_dictdl: "⬇ הורד מילון", btn_dictimport: "⬆ ייבא מילון",
+    btn_dictdl: "⬇ הורד מילון", btn_dictimport: "⬆ ייבא מילון", btn_dictmanager: "🗂 מנהל מילון",
     hint_dictmgmt: "שמרו/טענו את המילון כ-JSON — להעברה למחשב אחר, שיתוף עם חברים או גיבוי.",
     step2_title: "סקירה ועריכה",
     step2_desc: "סקרו ותקנו את התרגומים ידנית. צהוב = תורגם ב-AI או מילה חדשה.",
@@ -1627,6 +2101,8 @@ const I18N = {
     msg_need_key: "אנא הזינו מפתח API.",
     msg_no_valid: "לא נמצאו שורות תקינות. בדקו את הפורמט.\nדוגמה: KE wervik 539859",
     msg_processing: (n) => `מעבד ${n} פריטים...`,
+    msg_resolving: (d,n) => `מפענח באמצעות המילון... (${d}/${n})`,
+    msg_resolve_cancelled: (d,n) => `פענוח המילון בוטל (${d}/${n} הושלמו). מוצגות תוצאות חלקיות.`,
     msg_translating: (a,b,p) => `מתרגם ב-AI... (${a}/${b}) — ${p}`,
     msg_ratelimit: (s,a,m) => `מוגבל בקצב… ממתין ${s} שניות ומנסה שוב (${a}/${m})`,
     msg_done: (t,d,a,u) => `הושלם! עובדו ${t}. מילון:${d} / AI:${a} / משתמש:${u}`,
@@ -1656,6 +2132,13 @@ const I18N = {
     msg_copy_fail: "ההעתקה ללוח נכשלה. אנא העתיקו ידנית.",
     msg_lnc_saved: "‏club_names.lnc נשמר.",
     output_info_count: (l,c) => `השדה ניתן לעריכה. — ${l} שורות / ${c} תווים`,
+    msg_restored_review: (n, held, mins) => `העבודה הקודמת שוחזרה (${n} שורות, לפני כ-${mins} דקות). ${held} תרגומים שנוצרו בגרסה הקודמת דורשים בדיקה: הם לא ייכללו ב-‎.lnc עד שתריצו שוב "נתח ותרגם" או תאשרו כל שורה. תיבת הפלט הקודמת לא שוחזרה (הנתונים המקוריים נשמרו).`,
+    warn_review_skipped: (n) => `${n} שורות שדורשות בדיקה לא נכללו ב-‎.lnc. תרגמו אותן שוב או אשרו כל שורה.`,
+    warn_session_unsaved: 'לא ניתן היה לגבות את העבודה מהגרסה הקודמת (למשל, אחסון הדפדפן מלא). השמירה האוטומטית הושהתה כדי שהנתונים המקוריים לא יידרסו. עדיין אפשר לערוך וליצור ‎.lnc, אבל השינויים הנוכחיים יאבדו בטעינה מחדש. לאחר פינוי מקום, השמירה הבאה תגבה את הנתונים המקוריים ותחדש את השמירה האוטומטית.',
+    warn_transfail_skipped: (n) => `${n} שורות שתרגום ה-AI שלהן נכשל לא נכללו ב-‎.lnc. הקלידו את התרגום ידנית או תרגמו שוב.`,
+    review_tag: "לבדיקה",
+    review_confirm: "אישור",
+    review_confirm_aria: (name) => `אישור התרגום של ${name} והכללתו ב-‎.lnc`,
   }
 };
 
@@ -1752,7 +2235,21 @@ window.addEventListener('unhandledrejection', e => {
 // 翻訳の中断
 // ============================
 let cancelRequested = false;
-function requestCancel() { cancelRequested = true; }
+
+// B-A-1: New Resolver visible run 専用の AbortController（1 run 1個）。
+// 待機中（module load / bootstrap / 1 件の解決が pending）でも停止できるよう、
+// 停止ボタンから signal を abort して engine 側の cancel race を起こす。
+// run 終了時に必ず null へ戻すので、abort 済み signal を次 run で使い回さない。
+let newResolverAbort = null;
+
+function requestCancel() {
+  // 既存の AI 翻訳 / 画像抽出の中断挙動はそのまま（cancelRequested を立てる）。
+  cancelRequested = true;
+  // New Resolver visible run が待機中なら、その待機自体を即座に解く。
+  if (newResolverAbort) {
+    try { newResolverAbort.abort(); } catch (e) { /* 既に abort 済み */ }
+  }
+}
 function setTranslating(on) {
   const stop = document.getElementById('stop-btn');
   if (stop) stop.style.display = on ? '' : 'none';
@@ -1766,13 +2263,108 @@ function setExtracting(on) {
 // セッション自動保存・復元
 // ============================
 const SESSION_KEY = 'fm_session_v1';
+// 2.0.0: 旧版の session を v41 で初めて復元したとき、元の payload をそのまま残す場所。
+const SESSION_LEGACY_BACKUP_KEY = 'fm_session_v1_legacy_backup';
+const SESSION_LEGACY_BACKUP_MAX = 3;
+// 2.0.0: session の行が「どの Builtin 辞書の下で作られたか」を示す provenance。
+// v40 以前の saveSession() はこれを書かない（v40 のタブが書き直すと消える）ので、
+// 無い / 違う session は「旧版の自動生成訳を含むかもしれない」として扱う。
+const SESSION_PROVENANCE_REV = 2;
 let saveTimer = null;
+// 2.0.0: 退避に失敗した旧版 session の元の文字列。null でない間は fm_session_v1 を
+// 上書きも削除もしない（fail-closed）。保存のたびに退避を再試行し、成功したら解除する。
+let legacySessionUnbacked = null;
+
+// 同期で計算できる Builtin 内容の identity（FNV-1a 32bit）。engine 側の
+// builtinContentFingerprint とは別物で、session 同士の比較にだけ使う。
+function builtinDictIdentity() {
+  const keys = Object.keys(BUILTIN_DICT).sort();
+  const canon = JSON.stringify(keys.map(k => [k, BUILTIN_DICT[k]]));
+  let h = 0x811c9dc5;
+  for (let i = 0; i < canon.length; i++) {
+    h ^= canon.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return keys.length + ':' + h.toString(16).padStart(8, '0');
+}
+
+function sessionProvenance() {
+  return { rev: SESSION_PROVENANCE_REV, builtin: builtinDictIdentity() };
+}
+
+function sessionProvenanceMatches(p) {
+  return !!p && typeof p === 'object'
+    && p.rev === SESSION_PROVENANCE_REV && p.builtin === builtinDictIdentity();
+}
+
+// 現在のユーザー辞書**だけ**で、この行の訳をそのまま再現できるか。
+// v40 の lookupPhrase は語ごとに user / builtin を混ぜても source='user' を返すので、
+// source の値は信用せず、全語（またはフレーズ全体）が辞書にあることを確かめる。
+function userDictReproduces(d, userDict) {
+  const words = Array.isArray(d.nameWords) && d.nameWords.length
+    ? d.nameWords : String(d.originalName || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return false;
+  const phrase = userDict[words.join(' ').toLowerCase()];
+  const text = phrase
+    || (words.every(w => userDict[String(w).toLowerCase()])
+      ? words.map(w => userDict[String(w).toLowerCase()]).join(' ') : null);
+  return !!text && text === d.translated;
+}
+
+// 旧版 session の行のうち、再翻訳か行ごとの確認まで .lnc へ出さない行に印を付ける。
+// 値は消さない。保留しないのは:
+//   - 訳が空（そもそも出力されない）
+//   - .lnc 読込行（利用者自身のファイルの値）
+//   - 現在のユーザー辞書だけで同じ訳を再現できる行
+// v40 の `edited` は SHORT だけを編集しても立つので、LONG の由来の証拠にならない
+// （確認できない由来は保留に倒す）。
+function markLegacyRowsForReview(rows) {
+  const userDict = getUserDict();
+  let held = 0;
+  rows.forEach(d => {
+    if (d.reviewRequired) { held++; return; }
+    if (!String(d.translated || '').trim()) return;
+    if (d.source === 'import') return;
+    if (userDictReproduces(d, userDict)) return;
+    d.reviewRequired = 'legacy_session';
+    held++;
+  });
+  return held;
+}
+
+// 元の session 文字列を消さずに残す（最大 SESSION_LEGACY_BACKUP_MAX 件）。
+function preserveLegacySession(raw, quiet) {
+  try {
+    let list = [];
+    try {
+      const prev = JSON.parse(localStorage.getItem(SESSION_LEGACY_BACKUP_KEY) || 'null');
+      if (prev && Array.isArray(prev.sessions)) list = prev.sessions.filter(x => typeof x === 'string');
+    } catch { /* 壊れた backup は作り直す */ }
+    if (!list.includes(raw)) list.push(raw);
+    while (list.length > SESSION_LEGACY_BACKUP_MAX) list.shift();
+    localStorage.setItem(SESSION_LEGACY_BACKUP_KEY, JSON.stringify({ v: 1, sessions: list }));
+    return true;
+  } catch (e) {
+    if (!quiet) logError('restoreSession:backup', e);
+    return false;
+  }
+}
+
+// fm_session_v1 を書き換えてよいか。退避できていない元の文字列があれば先に退避する。
+function sessionWritable() {
+  if (legacySessionUnbacked === null) return true;
+  if (!preserveLegacySession(legacySessionUnbacked, true)) return false;
+  legacySessionUnbacked = null;
+  return true;
+}
 
 function saveSession() {
+  if (!sessionWritable()) return;
   try {
     const payload = {
       v: 1,
       savedAt: Date.now(),
+      provenance: sessionProvenance(),
       raw: document.getElementById('raw-input')?.value || '',
       output: document.getElementById('output')?.value || '',
       tableData: tableData
@@ -1790,13 +2382,15 @@ function scheduleSave() {
 }
 
 function clearSession() {
+  if (!sessionWritable()) return;
   try { localStorage.removeItem(SESSION_KEY); } catch {}
 }
 
 function restoreSession() {
   let payload;
+  let raw;
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return;
     payload = JSON.parse(raw);
   } catch (e) {
@@ -1810,13 +2404,29 @@ function restoreSession() {
   if (!ok) { clearSession(); return; }
 
   try {
+    // 2.0.0: provenance が無い / 違う = 旧版（または旧版のタブが書き直した）session。
+    // 旧内蔵辞書や旧 engine の自動生成訳を含み得るので、行を保留し、前回の出力欄
+    // （生成済み .lnc の文字列）は戻さない。元の payload は別 key に残す。
+    // ここでは AI も engine も呼ばない（復元だけで費用を発生させない）。
+    const legacy = !sessionProvenanceMatches(payload.provenance);
+    let held = 0;
+    let backedUp = false;
+    if (legacy) {
+      backedUp = preserveLegacySession(raw);
+      if (!backedUp) legacySessionUnbacked = raw;
+      held = markLegacyRowsForReview(payload.tableData);
+    }
     tableData = payload.tableData;
     const rawEl = document.getElementById('raw-input');
     const outEl = document.getElementById('output');
     if (rawEl && payload.raw) rawEl.value = payload.raw;
-    if (outEl && payload.output) outEl.value = payload.output;
+    // 失敗文言を含む出力欄（修正前の build が生成したもの）は戻さない。
+    if (outEl && payload.output && !legacy && !isTransFailText(payload.output)) outEl.value = payload.output;
     renderTable();
     updateOutputInfo();
+    // backup に成功したときだけ、保留の印と provenance 付きで書き直す
+    // （失敗したら元の session を上書きしない。以後の保存も sessionWritable() が止める）。
+    if (legacy && backedUp) saveSession();
     const dict = tableData.filter(d => d.source === 'dict').length;
     const user = tableData.filter(d => d.source === 'user').length;
     const ai = tableData.filter(d => d.source === 'ai').length;
@@ -1826,7 +2436,9 @@ function restoreSession() {
     document.getElementById('stat-user').textContent = user;
     document.getElementById('stats-area').style.display = 'flex';
     const mins = Math.round((Date.now() - (payload.savedAt || Date.now())) / 60000);
-    showAlert('success', t('msg_restored', tableData.length, mins));
+    if (legacy) showAlert('warn', t('msg_restored_review', tableData.length, held, mins)
+      + (backedUp ? '' : '  ｜  ' + t('warn_session_unsaved')));
+    else showAlert('success', t('msg_restored', tableData.length, mins));
   } catch (e) {
     logError('restoreSession:apply', e);
   }
@@ -1848,9 +2460,12 @@ function setLang(lang) {
   const sel = document.getElementById('lang-select');
   if (sel && sel.value !== lang) sel.value = lang;
   // 動的な部分を更新
+  // A-3/i18n: #data-label is the accessible name of #raw-input, and it is produced
+  // by onTargetChange() rather than by a data-i18n attribute. Without this call
+  // it would stay frozen in whatever language the page was loaded in.
+  if (typeof onTargetChange === 'function') onTargetChange();
   updateDictCount();
   updateOutputInfo();
-  renderModelStatus();
   if (typeof ERROR_LOG !== 'undefined') updateErrLogBtn();
   if (typeof tableData !== 'undefined' && tableData.length) renderTable();
 }
@@ -1858,16 +2473,21 @@ function setLang(lang) {
 // ============================
 // 組み込み辞書
 // ============================
-const BUILTIN_DICT = {
-  "kalken": "カルケン", "homme": "ハム", "hamme": "ハム",
-  "pays": "ペイ", "vert": "ヴェール", "ostiches": "オスティシュ",
-  "ath": "アト", "harre": "アール", "manhay": "マンハイ",
-  "londerzeel": "ロンデルゼール", "next": "ネクスト",
-  "laakdal": "ラークダール", "geel": "ヘール", "wanze": "ワンズ",
-  "bas": "バ", "oha": "ゾハ", "wavelgem": "ウェフェルヘム",
-  "wevelgem": "ウェフェルヘム", "city": "シティ", "onhaye": "オネー",
-  "wellen": "ウェレン", "wervik": "ウェルヴィク"
-};
+// FMlncGen 2.0.0: 旧 LncGen v1.6.0 から引き継いだ内蔵カタカナ辞書 22 件を全廃した。
+// 読みの出所はユーザー辞書 / Claim Store / AI だけになる。
+//
+// 宣言そのものは **インターフェースとして残す**:
+//   - lookupWord() の builtin tier（Legacy visible fallback）
+//   - runVisibleResolveForRows / runShadowForVisibleRows の `builtinDictionary` 引数
+// どちらも「空の Builtin」を受け取れる契約なので、呼び出し側を書き換えずに
+// 内蔵データだけを 0 件にできる。再び内蔵辞書を配る判断をした場合は、ここへ
+// 足したうえで dictionary-policy-versions.js の BUILTIN_DICTIONARY_VERSION も
+// 上げること（Decision-affecting Policy 変更の記録と Claim の rescore のため）。
+// resolution_cache の key は engine へ **実際に渡した内容** から作られ
+// （engine 側の builtinContentFingerprint）、fm_session_v1 も
+// builtinDictIdentity() が変わると旧版 session として保留されるので、中身を
+// 変えれば旧結果は自動的に使われなくなる。
+const BUILTIN_DICT = {};
 
 // FM プレフィックス（翻訳スキップ）
 const PREFIXES = new Set([
@@ -1907,11 +2527,6 @@ function getProvider() {
   return document.getElementById('provider-select')?.value || 'gemini';
 }
 
-const MODEL_EXCLUDE_PATTERN = /(embedding|imagen|image|veo|aqa|tts|audio|live|robotics|computer-use|deep-research|whisper|orpheus|guard|moderation)/i;
-let modelRefreshTimer = null;
-let modelRefreshSeq = 0;
-let modelStatusState = { state: 'idle', count: 0 };
-
 // 対象（club / comp / player / stadium）
 function getTarget() {
   return document.getElementById('target-select')?.value || 'club';
@@ -1950,18 +2565,13 @@ function onTargetChange() {
   if (typeof tableData !== 'undefined' && tableData.length) renderTable();
 }
 
-// 指定プロバイダ用のキーを取得（入力欄優先、無ければ保存値）
-function getProviderApiKey(provider) {
-  const isGroq = provider === 'groq';
+// 現在のプロバイダ用のキーを取得（入力欄優先、無ければ保存値）
+function getApiKey() {
+  const isGroq = getProvider() === 'groq';
   const el = document.getElementById(isGroq ? 'api-key-groq' : 'api-key-gemini');
   const v = (el?.value || '').trim();
   if (v) localStorage.setItem(isGroq ? 'fm_api_key_groq' : 'fm_api_key', v);
   return v || localStorage.getItem(isGroq ? 'fm_api_key_groq' : 'fm_api_key') || '';
-}
-
-// 現在のプロバイダ用のキーを取得
-function getApiKey() {
-  return getProviderApiKey(getProvider());
 }
 
 // Geminiキーを取得（画像抽出用。プロバイダに関係なく使う）
@@ -1971,149 +2581,7 @@ function getGeminiKey() {
   return v || localStorage.getItem('fm_api_key') || '';
 }
 
-function renderModelStatus() {
-  const el = document.getElementById('model-status');
-  if (!el) return;
-  const { state, count } = modelStatusState;
-  el.dataset.state = state;
-  if (state === 'loading') el.textContent = t('model_status_loading');
-  else if (state === 'success') el.textContent = t('model_status_success', count);
-  else if (state === 'error') el.textContent = t('model_status_error');
-  else el.textContent = t('model_status_no_key');
-}
-
-function setModelStatus(state, count = 0) {
-  modelStatusState = { state, count };
-  renderModelStatus();
-}
-
-function setModelRefreshLoading(loading) {
-  const btn = document.getElementById('model-refresh-btn');
-  if (btn) btn.disabled = loading;
-}
-
-function sortModels(models) {
-  return models.sort((a, b) => {
-    const previewA = /(preview|experimental|exp-|latest)/i.test(a.id) ? 1 : 0;
-    const previewB = /(preview|experimental|exp-|latest)/i.test(b.id) ? 1 : 0;
-    return previewA - previewB || a.id.localeCompare(b.id, undefined, { numeric: true });
-  });
-}
-
-function updateModelOptions(provider, models) {
-  const group = document.getElementById(provider === 'groq' ? 'optgroup-groq' : 'optgroup-gemini');
-  const sel = document.getElementById('model-select');
-  if (!group || !sel || !models.length) return;
-
-  const savedKey = provider === 'groq' ? 'fm_model_groq' : 'fm_model_gemini';
-  const previous = localStorage.getItem(savedKey) || sel.value;
-  group.replaceChildren(...models.map(model => {
-    const option = document.createElement('option');
-    option.value = model.id;
-    option.textContent = model.label || model.id;
-    if (model.description) option.title = model.description;
-    return option;
-  }));
-
-  const options = [...group.querySelectorAll('option')];
-  const selected = options.some(option => option.value === previous)
-    ? previous
-    : options[0]?.value;
-  if (selected) {
-    sel.value = selected;
-    localStorage.setItem(savedKey, selected);
-  }
-}
-
-async function readApiError(response) {
-  const data = await response.json().catch(() => ({}));
-  return data.error?.message || data.message || `HTTP ${response.status}`;
-}
-
-function parseGeminiModels(data) {
-  const unique = new Map();
-  (data.models || []).forEach(model => {
-    const id = (model.baseModelId || model.name?.replace(/^models\//, '') || '').trim();
-    const methods = model.supportedGenerationMethods || [];
-    if (!id.startsWith('gemini-') || !methods.includes('generateContent') || MODEL_EXCLUDE_PATTERN.test(id)) return;
-    if (!unique.has(id)) unique.set(id, {
-      id,
-      label: model.displayName && model.displayName !== id ? `${model.displayName} — ${id}` : id,
-      description: model.description || '',
-    });
-  });
-  return sortModels([...unique.values()]);
-}
-
-function parseGroqModels(data) {
-  const unique = new Map();
-  (data.data || []).forEach(model => {
-    const id = (model.id || '').trim();
-    if (!id || model.active === false || MODEL_EXCLUDE_PATTERN.test(id)) return;
-    if (!unique.has(id)) unique.set(id, { id, label: id });
-  });
-  return sortModels([...unique.values()]);
-}
-
-async function fetchGeminiModels(apiKey) {
-  const params = new URLSearchParams({ key: apiKey, pageSize: '1000' });
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?${params}`);
-  if (!response.ok) throw new Error(await readApiError(response));
-  return parseGeminiModels(await response.json());
-}
-
-async function fetchGroqModels(apiKey) {
-  const response = await fetch('https://api.groq.com/openai/v1/models', {
-    headers: { 'Authorization': `Bearer ${apiKey}` },
-  });
-  if (!response.ok) throw new Error(await readApiError(response));
-  return parseGroqModels(await response.json());
-}
-
-async function refreshAvailableModels() {
-  clearTimeout(modelRefreshTimer);
-  const provider = getProvider();
-  const apiKey = getProviderApiKey(provider);
-  const requestId = ++modelRefreshSeq;
-
-  if (!apiKey) {
-    setModelRefreshLoading(false);
-    setModelStatus('idle');
-    return;
-  }
-
-  setModelRefreshLoading(true);
-  setModelStatus('loading');
-  try {
-    const models = provider === 'groq'
-      ? await fetchGroqModels(apiKey)
-      : await fetchGeminiModels(apiKey);
-    if (requestId !== modelRefreshSeq || provider !== getProvider()) return;
-    if (!models.length) throw new Error('利用可能な生成モデルが見つかりませんでした');
-    updateModelOptions(provider, models);
-    setModelStatus('success', models.length);
-  } catch (error) {
-    if (requestId !== modelRefreshSeq || provider !== getProvider()) return;
-    logError('refreshAvailableModels', error);
-    setModelStatus('error');
-  } finally {
-    if (requestId === modelRefreshSeq) setModelRefreshLoading(false);
-  }
-}
-
-function scheduleModelRefresh(delay = 700) {
-  clearTimeout(modelRefreshTimer);
-  const apiKey = getProviderApiKey(getProvider());
-  if (!apiKey) {
-    modelRefreshSeq++;
-    setModelRefreshLoading(false);
-    setModelStatus('idle');
-    return;
-  }
-  modelRefreshTimer = setTimeout(refreshAvailableModels, delay);
-}
-
-// プロバイダ切替時：モデル選択肢を切り替え、利用可能モデルを更新
+// プロバイダ切替時：モデル選択肢だけ切り替える（キー欄は両方常時表示）
 function onProviderChange() {
   const isGroq = getProvider() === 'groq';
   localStorage.setItem('fm_provider', isGroq ? 'groq' : 'gemini');
@@ -2125,29 +2593,85 @@ function onProviderChange() {
   const opts = [...group.querySelectorAll('option')];
   if (savedModel && opts.some(o => o.value === savedModel)) sel.value = savedModel;
   else if (opts[0]) sel.value = opts[0].value;
-  scheduleModelRefresh(150);
+}
+
+// Phase 9A: Dictionary Manager / Backup UX を開く唯一の口。
+// Manager を開いたときだけ dictionary-manager-ui.js を dynamic import する
+// （src 属性の subresource を足さない = offline 起動性を維持）。sw.js が
+// この module の closure を precache するので offline でも開ける。
+var DICT_MANAGER_UI_MODULE = './assets/build-aa5bb44e3eb4/dictionary-manager-ui.js';
+var __dictManagerHandle = null;
+var __dictManagerOpening = false;
+// A-5: the trigger is a disclosure button. aria-expanded has to track the
+// real visibility of #fm-dict-manager, and focus has to follow the
+// disclosure open and come back to the trigger on close.
+function setDictManagerExpanded(expanded) {
+  var btn = document.getElementById('open-dict-manager');
+  if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+// The region itself is tabindex="-1", so moving focus there puts the next
+// Tab inside the manager without stealing focus from a typing user.
+function focusDictManager(host) {
+  if (!host || host.hidden) return;
+  try { host.focus({ preventScroll: true }); } catch (e) {
+    try { host.focus(); } catch (e2) { /* noop */ }
+  }
+}
+
+function closeDictManagerRegion(host) {
+  host.hidden = true;
+  setDictManagerExpanded(false);
+  var btn = document.getElementById('open-dict-manager');
+  // Returning focus to the trigger keeps the keyboard user in place
+  // instead of dropping them back at the top of the document.
+  if (btn) { try { btn.focus(); } catch (e) { /* noop */ } }
+}
+
+function openDictManager() {
+  var host = document.getElementById('fm-dict-manager');
+  if (!host) return;
+  // 生きている handle があるときだけ再利用（closed handle は closed DB を握るので破棄する）。
+  if (__dictManagerHandle && !__dictManagerHandle.closed) { host.hidden = false; setDictManagerExpanded(true); focusDictManager(host); __dictManagerHandle.refresh(); return; }
+  if (__dictManagerHandle) { try { __dictManagerHandle.destroy(); } catch (e) { /* noop */ } __dictManagerHandle = null; }
+  if (__dictManagerOpening) return;
+  __dictManagerOpening = true;
+  host.hidden = false;
+  setDictManagerExpanded(true);
+  host.textContent = t('msg_loading') || 'Loading…';
+  // 毎回 fresh に dynamic import 済み module から remount（新しい DB 接続で refresh される）。
+  Promise.resolve().then(function () { return import(DICT_MANAGER_UI_MODULE); }).then(function (mod) {
+    return mod.mountManagerUI(host, {
+      lang: LANG,
+      confirm: function (m) { return window.confirm(m); },
+      prompt: function (m, d) { return window.prompt(m, d); },
+      toast: function (kind, msg) { try { showAlert(kind === 'error' ? 'error' : kind === 'warn' ? 'warn' : 'success', String(msg)); } catch (e) { /* noop */ } },
+      onClose: function () { closeDictManagerRegion(host); __dictManagerHandle = null; },   // handle を必ず落とす
+    });
+  }).then(function (h) { __dictManagerHandle = h; focusDictManager(host); }).catch(function (e) {
+    __dictManagerHandle = null;
+    host.textContent = (t('failed') || 'Failed: ') + ((e && e.message) || e);
+  }).then(function () { __dictManagerOpening = false; });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   updateErrLogBtn();
   restoreSession();
+  var dmBtn = document.getElementById('open-dict-manager');
+  if (dmBtn) dmBtn.addEventListener('click', openDictManager);
   // 2つのキー欄を復元
   const gKey = localStorage.getItem('fm_api_key');
   const qKey = localStorage.getItem('fm_api_key_groq');
   if (gKey) document.getElementById('api-key-gemini').value = gKey;
   if (qKey) document.getElementById('api-key-groq').value = qKey;
-  // 入力のたびに保存し、現在のプロバイダならモデル一覧を自動更新
+  // 入力のたびに保存
   document.getElementById('api-key-gemini').addEventListener('input', e => {
     const v = e.target.value.trim();
     if (v) localStorage.setItem('fm_api_key', v);
-    else localStorage.removeItem('fm_api_key');
-    if (getProvider() === 'gemini') scheduleModelRefresh();
   });
   document.getElementById('api-key-groq').addEventListener('input', e => {
     const v = e.target.value.trim();
     if (v) localStorage.setItem('fm_api_key_groq', v);
-    else localStorage.removeItem('fm_api_key_groq');
-    if (getProvider() === 'groq') scheduleModelRefresh();
   });
   // プロバイダ復元
   const savedProvider = localStorage.getItem('fm_provider');
@@ -2195,10 +2719,20 @@ function parseLine(line) {
 
   // 国名ヒント [○○] を抽出して取り除く（翻訳ヒント用。.lnc 出力には含めない）
   let country = '';
+  // CR-3 / 実装案_確定版.md §145「FM Raw Input → Adapter → Canonical Input」:
+  // Shadow / Cutover 比較で New Resolver へ渡す raw source name。ID と国名ヒントは
+  // FM 入力仕様（Adapter 境界）なので取り除くが、**Legacy の解決用前処理**
+  // （whitespace collapse / prefix 大文字化 / prefix 剥離）は一切かけない。
+  // これを Legacy の parseLine 結果から再構築すると、New 自身の
+  // prefix / whitespace / punctuation 処理を比較で測れなくなる。
+  let rawLine = line;
   const cMatch = line.match(/\[([^\]]+)\]/);
   if (cMatch) {
     country = cMatch[1].trim();
-    line = (line.slice(0, cMatch.index) + line.slice(cMatch.index + cMatch[0].length)).replace(/\s+/g, ' ').trim();
+    const withoutCountry = line.slice(0, cMatch.index) + line.slice(cMatch.index + cMatch[0].length);
+    // raw 側は collapse しない（Legacy 側だけが従来どおり collapse する）
+    rawLine = withoutCountry.trim();
+    line = withoutCountry.replace(/\s+/g, ' ').trim();
   }
 
   // 末尾のIDを抽出（1桁以上の数字）
@@ -2207,6 +2741,11 @@ function parseLine(line) {
   const id = idMatch[1];
   const rest = line.slice(0, line.length - idMatch[0].length).trim();
   if (!rest) return null; // クラブ名が空ならスキップ
+
+  // raw 側からも同じ末尾IDを落とす。取れない場合だけ Legacy の rest へ落とす。
+  const rawIdMatch = rawLine.match(/\s+(\d+)$/);
+  const originalNameRaw =
+    (rawIdMatch ? rawLine.slice(0, rawLine.length - rawIdMatch[0].length).trim() : '') || rest;
 
   // プレフィックス検出（先頭から連続する「大文字略語」または「数字(創設年など)」をまとめて取得）
   const words = rest.split(/\s+/);
@@ -2240,7 +2779,10 @@ function parseLine(line) {
   const prefix = prefixWords.join(' ');
   const nameWords = words.slice(idx);
 
-  return { id, prefix, originalName: nameWords.join(' '), nameWords, country };
+  // CR-3: originalName は従来どおり「prefix 剥離 + whitespace collapse 済み」の
+  // Legacy 本体。originalNameRaw は New Resolver 用の raw source name。
+  // Legacy visible path は originalName / nameWords / prefix だけを使う（不変）。
+  return { id, prefix, originalName: nameWords.join(' '), originalNameRaw, nameWords, country };
 }
 
 // ============================
@@ -2437,7 +2979,7 @@ async function fetchWithRetry(url, headers, body, extractText, emptyErrorMsg) {
 async function callTextModel(promptText, apiKey, extraConfig) {
   const provider = getProvider();
   const model = document.getElementById('model-select')?.value
-    || (provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash');
+    || (provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-3.6-flash');
 
   let url, headers, body, extractText;
   if (provider === 'groq') {
@@ -2502,7 +3044,7 @@ async function callVisionModelOnce(promptText, images, apiKey) {
   } else {
     // Gemini：選択中のモデルが gemini- なら流用、そうでなければ既定の vision モデル
     const sel = document.getElementById('model-select')?.value || '';
-    const model = sel.startsWith('gemini-') ? sel : 'gemini-2.5-flash';
+    const model = sel.startsWith('gemini-') ? sel : 'gemini-3.6-flash';
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     headers = { 'Content-Type': 'application/json' };
     const parts = [{ text: promptText }];
@@ -2624,6 +3166,36 @@ async function _runParse() {
   const userDict = getUserDict();
   let statDict = 0, statAi = 0, statUser = 0;
 
+  // Cutover: 1 run につき1回だけ New Resolver の visible 解決をまとめて行う
+  // （bootstrap / legacy migration もこの1回の中で完了する）。使えない場合は
+  // resolved=null が返り、以降は従来どおり Legacy visible path だけで動く。
+  const newRun = await runNewResolverVisible(parsed, getTarget());
+
+  // B-A: ユーザーが停止を押した場合は「New の失敗」として全件 Legacy へ流さない。
+  // それでは停止にならないため、Legacy lookup も AI queue 生成も行わずここで終える。
+  // 表示は既存の中断 UX と同じ partial result（解決済みの行だけ値が入る）。
+  if (newRun.cancelled) {
+    let doneCount = 0;
+    parsed.forEach((p, i) => {
+      const nv = newRun.resolved ? newRun.resolved[i] : null;
+      if (nv) {
+        tableData.push({ ...p, prefix: nv.prefix, translated: nv.translated,
+                         short: '', isNew: false, source: 'dict' });
+        doneCount++;
+      } else {
+        // 未処理行。AI queue へは入れない（停止後に AI を開始しない）。
+        tableData.push({ ...p, translated: '', short: '', isNew: true, source: 'ai' });
+      }
+    });
+    __newResolverVisible.applied += doneCount;
+    __newResolverVisible.lastApplied = doneCount;
+    showAlert('warn', t('msg_resolve_cancelled', doneCount, parsed.length));
+    finishParse(doneCount, 0, 0, { done: doneCount, total: parsed.length });
+    cancelRequested = false;
+    return;
+  }
+  const newVisible = newRun.resolved;
+
   // AIに送るキュー。同じ名前は1回だけ翻訳して使い回す（重複排除）
   const aiQueue = []; // { phrase, indices: [] }
   const queueByPhrase = {};
@@ -2631,8 +3203,25 @@ async function _runParse() {
   for (let i = 0; i < parsed.length; i++) {
     const p = parsed[i];
     const lookup = lookupPhrase(p.nameWords, userDict);
+    const nv = newVisible ? newVisible[i] : null;
 
-    if (lookup.text) {
+    if (nv) {
+      // New Resolver の完成出力をそのまま可視化する。prefix は New の Source Map が
+      // preserve した語で、prefix + translated は完成形と1文字も違わない。
+      // Legacy のような prefix 再結合はしない（二重付与しない）。
+      tableData.push({
+        ...p,
+        prefix: nv.prefix,
+        translated: nv.translated,
+        short: '',
+        isNew: false,
+        source: lookup.source === 'user' ? 'user' : 'dict'
+      });
+      if (lookup.source === 'user') statUser++;
+      else statDict++;
+      __newResolverVisible.applied++;
+      __newResolverVisible.lastApplied++;
+    } else if (lookup.text) {
       tableData.push({
         ...p,
         translated: lookup.text,
@@ -2753,7 +3342,239 @@ async function _runParse() {
 }
 
 // 統計更新・描画・保存をまとめる
-function finishParse(statDict, statAi, statUser) {
+// ============================
+// Phase 4 Shadow (v19 Phase 4: Legacy resolver = visible / New resolver = shadow)
+// ============================
+// 可視出力は常に Legacy のまま。New Resolver は結果を **一切表示せず**
+// 診断目的でだけ実行する。Default ON ではない。
+//
+// 実装形態: この inline classic script から dynamic import() で
+// phase4-shadow-runtime.js を遅延読込する。src 属性を持つ subresource は
+// 追加しないので、index.html 単体で offline 起動できる性質を変えない。
+// module 取得に失敗した場合（初回 offline 等）は Shadow を諦めるだけで、
+// Legacy の可視処理は完全に継続する。
+var PHASE4_SHADOW_MODULE = './assets/build-aa5bb44e3eb4/phase4-shadow-runtime.js';
+
+// engine module を取得する唯一の口。差し替え口 (__phase4ModuleLoader) は既定 null で、
+// テストの fault injection / routing 検証だけが使う（本番は dynamic import そのまま）。
+var __phase4ModuleLoader = null;
+function loadPhase4Module() {
+  if (typeof __phase4ModuleLoader === 'function') {
+    return Promise.resolve().then(function () { return __phase4ModuleLoader(); });
+  }
+  return Promise.resolve().then(function () { return import(PHASE4_SHADOW_MODULE); });
+}
+
+// B-A: visible 経路の module load は bounded にする。値は engine 側の
+// VISIBLE_ROUTE_POLICY.moduleLoadTimeoutMs と同じ（test が一致を固定する）。
+// module が来ないと flag も policy も読めないので、ここだけ数値を持つ。
+var PHASE4_MODULE_LOAD_TIMEOUT_MS = 8000;
+
+// B-A-1: module load も **operation vs timeout vs cancel** の 3 分岐 race にする。
+// engine の raceOperationWithTimeoutAndCancel と同じ契約だが、module が来る前は
+// engine を import できないので、ここだけ同じ形を最小限で持つ。
+//   - 先着1回だけ settle（late な mod / error は読まない）
+//   - 遅延 reject を必ず受けて unhandled rejection にしない
+//   - timer と abort listener を決着時に必ず解除する
+function loadPhase4ModuleBounded(ms, signal) {
+  return new Promise(function (settle) {
+    var timer = null;
+    var onAbort = null;
+    var settled = false;
+    var finish = function (outcome) {
+      if (settled) return;
+      settled = true;
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+      if (onAbort !== null && signal && signal.removeEventListener) {
+        try { signal.removeEventListener('abort', onAbort); } catch (e) { /* 解除済み */ }
+      }
+      onAbort = null;
+      settle(outcome);
+    };
+    // 既に停止済みなら module 取得を **開始しない**。
+    if (signal && signal.aborted) { finish({ cancelled: true }); return; }
+    loadPhase4Module().then(
+      function (mod) { finish({ mod: mod }); },
+      function (err) { finish({ error: err }); });
+    if (typeof ms === 'number' && isFinite(ms) && ms > 0) {
+      timer = setTimeout(function () { timer = null; finish({ timedOut: true }); }, ms);
+    }
+    if (signal && signal.addEventListener) {
+      onAbort = function () { finish({ cancelled: true }); };
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  });
+}
+
+// ----------------------------------------------------------------------
+// Cutover Apply: New Resolver visible path
+// ----------------------------------------------------------------------
+// docs/cutover-readiness-plan.md §8。ここは wiring だけで、解決 logic は持たない。
+// Feature Flag 本体は engine 側の shadow module が持つ（この file は flag を複製しない）。
+// module 取得失敗 / DB 不可 / migration 未完了 / 1件の例外 は全て Legacy fallback。
+var __newResolverVisible = {
+  attempted: 0, applied: 0, rows: 0, usedThisRun: false,
+  lastReason: null, lastCounters: null, lastError: null, moduleAvailable: null,
+  // B-A: run ごとにリセットされる値（累積 counter と混ぜない）
+  cancelledThisRun: false, lastApplied: 0, lastProgress: null, progressEvents: 0,
+  // B-A-1: 停止をどの待機中に捕まえたか（'module' | engine 側 phase | null）
+  lastCancelPhase: null
+};
+
+// 診断の read-only 参照口（UIには出さない）
+function getNewResolverVisibleDiagnostics() {
+  return JSON.parse(JSON.stringify(__newResolverVisible));
+}
+
+// B-A: bounded な進捗通知。status text だけ更新し、表は再描画しない
+// （大量入力で毎行 DOM を叩かない）。throttle は engine 側が持つ。
+function onNewResolverProgress(p) {
+  __newResolverVisible.lastProgress = p;
+  __newResolverVisible.progressEvents++;
+  try {
+    setStatus('active', t('msg_resolving', p.processed, p.total));
+  } catch (e) { /* DOM/i18n が無くても resolve を止めない */ }
+}
+
+// 戻り値は必ず object: { cancelled, resolved }。
+//   cancelled === true → 呼び出し側は Legacy lookup / AI queue へ進まない
+//   resolved === null  → New は使えない。従来どおり Legacy visible path
+async function runNewResolverVisible(parsed, target) {
+  __newResolverVisible.attempted++;
+  __newResolverVisible.usedThisRun = false;
+  __newResolverVisible.cancelledThisRun = false;
+  __newResolverVisible.lastApplied = 0;
+  __newResolverVisible.rows = parsed.length;
+  __newResolverVisible.lastReason = null;
+  __newResolverVisible.lastCounters = null;
+  __newResolverVisible.lastProgress = null;
+  __newResolverVisible.progressEvents = 0;
+  __newResolverVisible.lastCancelPhase = null;
+
+  // B-A: 前回 run の停止状態を持ち越さない（二重クリック / 連続 run 対策）。
+  cancelRequested = false;
+  // B-A-1: この run 専用の AbortController。abort 済み signal を使い回さない。
+  var abortController = (typeof AbortController === 'function') ? new AbortController() : null;
+  newResolverAbort = abortController;
+  var abortSignal = abortController ? abortController.signal : null;
+  // B-A: module load / bootstrap 中も押せるよう、開始前に stop button を出す。
+  setTranslating(true);
+  var cancelledResult = function (resolvedMap) {
+    __newResolverVisible.cancelledThisRun = true;
+    // 停止した run で shadow を走らせ直さない（また長時間 resolve が始まる）。
+    __newResolverVisible.usedThisRun = true;
+    __newResolverVisible.lastReason = 'cancelled';
+    return { cancelled: true, resolved: resolvedMap || {} };
+  };
+  try {
+    var loaded = await loadPhase4ModuleBounded(PHASE4_MODULE_LOAD_TIMEOUT_MS, abortSignal);
+    // module 待機中の停止を最優先で拾う（timeout / load error より前）。
+    if (loaded.cancelled || cancelRequested) {
+      __newResolverVisible.lastCancelPhase = 'module';
+      return cancelledResult(null);
+    }
+    if (loaded.timedOut) {
+      // module が来ない = New は使えない。run 全体を Legacy visible へ倒す。
+      if (__newResolverVisible.moduleAvailable === null) __newResolverVisible.moduleAvailable = false;
+      __newResolverVisible.lastReason = 'module_load_timeout';
+      return { cancelled: false, resolved: null };
+    }
+    if (loaded.error) throw loaded.error;
+    var mod = loaded.mod;
+    __newResolverVisible.moduleAvailable = true;
+    if (!mod || typeof mod.runVisibleResolveForRows !== 'function') {
+      __newResolverVisible.lastReason = 'visible_entry_unavailable';
+      return { cancelled: false, resolved: null };
+    }
+    // New へ渡すのは raw source name だけ（originalNameRaw）。Legacy 前処理済み
+    // 文字列や prefix 再結合値は渡さない（plan §2 Raw input）。
+    var snapshot = parsed.map(function (p, i) {
+      return { index: i, id: p.id, prefix: p.prefix, originalName: p.originalName,
+               originalNameRaw: p.originalNameRaw, country: p.country };
+    });
+    var res = await mod.runVisibleResolveForRows(snapshot, {
+      target: target, builtinDictionary: BUILTIN_DICT,
+      // B-A-1: signal を **production でも** 渡す。待機中の停止はこれで即座に効く。
+      // shouldCancel は signal を持たない環境（古い browser）向けの保険。
+      signal: abortSignal,
+      shouldCancel: function () { return cancelRequested === true; },
+      onProgress: onNewResolverProgress
+    });
+    __newResolverVisible.lastReason = res ? res.reason : 'no_result';
+    __newResolverVisible.lastCounters = res ? res.counters : null;
+    if (res && res.cancelled === true) {
+      __newResolverVisible.lastCancelPhase =
+        (res.counters && res.counters.cancelledPhase) || 'engine';
+      return cancelledResult(res.resolved);
+    }
+    if (!res || res.ok !== true || res.ready !== true) {
+      return { cancelled: false, resolved: null };
+    }
+    // engine が返った直後に押された停止も取りこぼさない。
+    if (cancelRequested) return cancelledResult(res.resolved);
+    __newResolverVisible.usedThisRun = true;
+    return { cancelled: false, resolved: res.resolved || null };
+  } catch (err) {
+    // module 未取得(offline初回) / 予期しない例外。Legacy visible をそのまま使う。
+    if (__newResolverVisible.moduleAvailable === null) __newResolverVisible.moduleAvailable = false;
+    __newResolverVisible.lastError = String((err && err.message) || err);
+    __newResolverVisible.lastReason = 'module_load_failed';
+    return { cancelled: false, resolved: null };
+  } finally {
+    // 完了・cancel・例外のいずれでも必ず stop button を戻し、
+    // この run の AbortController を手放す（次 run が abort 済み signal を使わない）。
+    if (newResolverAbort === abortController) newResolverAbort = null;
+    setTranslating(false);
+  }
+}
+
+var __phase4Shadow = {
+  attempted: 0, completed: 0, failed: 0,
+  lastError: null, lastResult: null, moduleAvailable: null
+};
+
+// 診断の read-only 参照口（UIには出さない）
+function getPhase4ShadowDiagnostics() {
+  return JSON.parse(JSON.stringify(__phase4Shadow));
+}
+
+function runPhase4Shadow(rows, target) {
+  // visible 側を絶対にブロックしない: await しない / 例外を外へ出さない。
+  __phase4Shadow.attempted++;
+  try {
+    var snapshot = (rows || []).map(function (d) {
+      // CR-3: originalNameRaw を必ず載せる。New Resolver は Legacy が再構築した
+      // 文字列ではなく、この raw source name を受け取る（§145）。
+      return { id: d.id, prefix: d.prefix, originalName: d.originalName,
+               originalNameRaw: d.originalNameRaw,
+               country: d.country, entity: d.entity, translated: d.translated };
+    });
+    loadPhase4Module()
+      .then(function (mod) {
+        __phase4Shadow.moduleAvailable = true;
+        // BUILTIN_DICT を直接渡すので Shadow は network を一切使わない。
+        return mod.runShadowForVisibleRows(snapshot, {
+          target: target, builtinDictionary: BUILTIN_DICT
+        });
+      })
+      .then(function (result) {
+        __phase4Shadow.completed++;
+        __phase4Shadow.lastResult = result;
+      })
+      .catch(function (err) {
+        // module 未取得(offline初回) / Shadow 内部例外。Legacy には影響させない。
+        if (__phase4Shadow.moduleAvailable === null) __phase4Shadow.moduleAvailable = false;
+        __phase4Shadow.failed++;
+        __phase4Shadow.lastError = String((err && err.message) || err);
+      });
+  } catch (err) {
+    __phase4Shadow.failed++;
+    __phase4Shadow.lastError = String((err && err.message) || err);
+  }
+}
+
+// `cancelled` が渡された場合は完了ではなく中断として status を出す。
+function finishParse(statDict, statAi, statUser, cancelled) {
   document.getElementById('stat-total').textContent = tableData.length;
   document.getElementById('stat-dict').textContent = statDict;
   document.getElementById('stat-ai').textContent = statAi;
@@ -2762,7 +3583,15 @@ function finishParse(statDict, statAi, statUser) {
 
   renderTable();
   saveSession();
-  setStatus('done', t('msg_done', tableData.length, statDict, statAi, statUser));
+  if (cancelled) setStatus('', t('msg_resolve_cancelled', cancelled.done, cancelled.total));
+  else setStatus('done', t('msg_done', tableData.length, statDict, statAi, statUser));
+
+  // Legacy visible 結果が確定した後に Shadow を非同期起動する（結果は捨てる）。
+  // Cutover 後、この run で既に New Resolver を visible に使っていたら、同じ行を
+  // もう一度 New へ通さない（二重 resolve / 二重 migration を作らない）。
+  if (!__newResolverVisible.usedThisRun) {
+    runPhase4Shadow(tableData, document.getElementById('target-select').value);
+  }
 }
 
 // 中断可能な待機。cancelRequested が立ったら待ち時間の途中でも即座に抜ける
@@ -2797,6 +3626,27 @@ function backoffDelay(status, msg, attempt) {
 }
 
 // ============================
+// AI 翻訳失敗の判定
+// ============================
+// 失敗行の translated には「失敗した時点の UI 言語」の msg_transfail が入る。
+// 言語切替・session 復元・.lnc 再取込（prefix 付き）でも見分けられるよう、
+// 全言語の文言を部分一致で照合する。
+function isTransFailText(s) {
+  const v = String(s || '');
+  if (!v) return false;
+  return Object.keys(I18N).some(l => {
+    const f = I18N[l].msg_transfail;
+    return typeof f === 'string' && f && v.includes(f);
+  });
+}
+
+// 訳として .lnc に出してはいけない失敗行か。error は利用者が訳を打ち直すと消える
+// （onTransEdit）ので、未編集で error が残る行は文言が変わっていても失敗行。
+function isTransFailRow(d) {
+  return isTransFailText(d.translated) || (!!d.error && !d.edited);
+}
+
+// ============================
 // テーブル描画
 // ============================
 function renderTable() {
@@ -2806,7 +3656,7 @@ function renderTable() {
     return;
   }
 
-  const needsAttention = d => !((d.translated || '').trim()) || d.error || d.translated === t('msg_transfail');
+  const needsAttention = d => !((d.translated || '').trim()) || d.error || isTransFailText(d.translated) || !!d.reviewRequired;
   const attnCount = tableData.filter(needsAttention).length;
 
   const showShort = targetHasShort();
@@ -2814,15 +3664,18 @@ function renderTable() {
     if (filterAttention && !needsAttention(d)) return '';
     const isNew = d.isNew;
     const newTag = isNew ? `<span class="new-tag">${t('new_tag')}</span>` : '';
+    const reviewTag = d.reviewRequired
+      ? `<span class="review-tag">${escHtml(t('review_tag'))}</span><button type="button" class="btn btn-secondary review-confirm" onclick="confirmReviewRow(${i})" aria-label="${escHtml(t('review_confirm_aria', d.originalName || d.id))}">${escHtml(t('review_confirm'))}</button>`
+      : '';
     const inputClass = isNew ? 'trans-input is-new' : 'trans-input';
-    const errTitle = d.error ? `title="${d.error}"` : '';
+    const errTitle = d.error ? `title="${escHtml(d.error)}"` : '';
     const shortCell = showShort
       ? `<td><input class="trans-input short-input" value="${escHtml(d.short || '')}" placeholder="${t('short_ph')}" data-idx="${i}" onchange="onShortEdit(this, ${i})" oninput="onShortEdit(this, ${i})"></td>`
       : '';
     return `<tr>
-      <td class="id-cell">${d.id}</td>
-      <td class="prefix-cell">${d.prefix || '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td class="name-cell">${escHtml(d.originalName)}${newTag}</td>
+      <td class="id-cell">${escHtml(d.id)}</td>
+      <td class="prefix-cell">${d.prefix ? escHtml(d.prefix) : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td class="name-cell">${escHtml(d.originalName)}${newTag}${reviewTag}</td>
       <td><input class="${inputClass}" ${errTitle} value="${escHtml(d.translated)}" data-idx="${i}" onchange="onTransEdit(this, ${i})" oninput="onTransEdit(this, ${i})"></td>
       ${shortCell}
     </tr>`;
@@ -2879,7 +3732,34 @@ function toggleFilter(on) {
 function onTransEdit(input, idx) {
   tableData[idx].translated = input.value;
   tableData[idx].edited = true;
+  // 失敗行の訳を利用者が打ち直した = 古い AI error はもう当てはまらない。
+  if (tableData[idx].error && !isTransFailText(input.value)) {
+    delete tableData[idx].error;
+    input.removeAttribute('title');
+  }
+  // 2.0.0: 保留行の LONG を利用者が打ち直した = 明示的な手入力値。
+  // 再描画は入力中の focus を奪うので、この行の印だけ外す。
+  if (tableData[idx].reviewRequired) {
+    releaseReviewRow(idx);
+    const tr = input.closest ? input.closest('tr') : null;
+    if (tr) tr.querySelectorAll('.review-tag, .review-confirm').forEach(el => el.remove());
+  }
   scheduleSave();
+}
+
+// 2.0.0: 保留行を利用者の明示確認で .lnc 対象へ戻す（行ごと）。
+function releaseReviewRow(idx) {
+  const d = tableData[idx];
+  if (!d || !d.reviewRequired) return false;
+  delete d.reviewRequired;
+  d.reviewConfirmedAt = Date.now();
+  return true;
+}
+
+function confirmReviewRow(idx) {
+  if (!releaseReviewRow(idx)) return;
+  saveSession();
+  renderTable();
 }
 
 function onShortEdit(input, idx) {
@@ -2892,7 +3772,9 @@ function onShortEdit(input, idx) {
 // .lnc読み込み由来で「原語＝訳（カタカナ→カタカナ）」の行は、原語が無いので登録しない
 function isDictRegisterable(d) {
   const trans = (d.translated || '').trim();
-  if (!trans || trans === t('msg_transfail') || d.error) return false;
+  if (!trans || isTransFailText(trans) || d.error) return false;
+  // 2.0.0: 確認前の保留行を一括保存でユーザー辞書へ入れない（由来の洗浄になる）。
+  if (d.reviewRequired) return false;
   if (!d.originalName) return false;
   // .lnc読み込み由来で、原語側にラテン文字が無い（＝カタカナ等のみで原語ではない）行は登録しない
   if (d.source === 'import' && !/[A-Za-z]/.test(d.originalName)) return false;
@@ -2981,6 +3863,9 @@ function importLnc(event) {
         id,
         prefix: '',
         originalName: name,
+        // CR-3: .lnc 再取込は Legacy parseLine を通っていないので、この name 自身が
+        // raw source value である（再構築ではない）。明示して silent fallback を避ける。
+        originalNameRaw: name,
         nameWords: name ? name.split(/\s+/) : [],
         translated: name,
         short: (short && short !== long) ? short : '',
@@ -3128,9 +4013,15 @@ function _generateLnc() {
 
   const target = getTarget();
   let dropped = 0;
+  let held = 0;
+  let failed = 0;
   tableData.forEach(d => {
     const trans = sanitizeName(d.translated);
     if (!trans) return;
+    // AI 翻訳失敗の表示文言を LONG / SHORT に出さない（件数は下で必ず知らせる）。
+    if (isTransFailRow(d)) { failed++; return; }
+    // 2.0.0: 旧 session 由来で確認前の行は出力しない（件数は下で必ず知らせる）。
+    if (d.reviewRequired) { held++; return; }
     const prefix = sanitizeName(d.prefix);
     const longLabel = prefix ? `${prefix} ${trans}` : trans;
     if (/["\r\n\t]/.test(`${d.translated || ''}${d.short || ''}${d.prefix || ''}`)) dropped++;
@@ -3157,7 +4048,12 @@ function _generateLnc() {
   document.getElementById('output').value = lines.join('\n');
   updateOutputInfo();
   saveSession();
-  if (dropped > 0) showAlert('warn', t('warn_sanitized', dropped));
+  const warns = [];
+  if (failed > 0) warns.push(t('warn_transfail_skipped', failed));
+  if (held > 0) warns.push(t('warn_review_skipped', held));
+  if (dropped > 0) warns.push(t('warn_sanitized', dropped));
+  if (legacySessionUnbacked !== null) warns.push(t('warn_session_unsaved'));
+  if (warns.length) showAlert('warn', warns.join('  ｜  '));
 }
 
 // .lnc 用に名前を安全化：区切り記号のダブルクォートを除去し、制御文字・改行を空白に
@@ -3264,8 +4160,46 @@ function escHtml(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    // S-2: every call site is an HTML rendering boundary (innerHTML text and
+    // double-quoted attributes), so escaping ' costs nothing visually and
+    // removes the single-quoted-attribute foot-gun for future call sites.
+    .replace(/'/g, '&#39;');
 }
+
+// ============================
+// キーボードで #raw-input へ移動したときの表示補正
+// ============================
+// Chrome は一部だけ画面に入っている textarea へ Tab / Shift+Tab で移ると、カーソル行が
+// 見えていればスクロールしない。375x800 の Shift+Tab では欄の上 58px とラベル・フォーカス枠が
+// 画面外に残った。Tab / Shift+Tab で着いたときだけ、ラベル・欄・枠が収まる最小量を
+// 近い側へスクロールする（中央寄せしない。マウス・タッチ・script の focus には触れない）。
+(function () {
+  var viaTab = false;
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    viaTab = true;
+    setTimeout(function () { viaTab = false; }, 0);   // この keydown の既定動作（移動）の間だけ
+  }, true);
+  var field = document.getElementById('raw-input');
+  if (!field) return;
+  field.addEventListener('focus', function () {
+    if (!viaTab) return;
+    requestAnimationFrame(function () {
+      if (document.activeElement !== field) return;
+      var label = document.querySelector('label[for="raw-input"]');
+      var r = field.getBoundingClientRect();
+      var room = 8;                                      // 2px 枠 + 2px offset の外側に余白
+      var top = Math.min(r.top, label ? label.getBoundingClientRect().top : r.top) - room;
+      var bottom = r.bottom + room;
+      var vh = document.documentElement.clientHeight;
+      var dy = 0;
+      if (top < 0) dy = top;
+      else if (bottom > vh) dy = Math.min(bottom - vh, top);   // 下へ出たときも上端は残す
+      if (dy) window.scrollBy(0, dy);
+    });
+  });
+})();
 
 // ============================
 // PWA: Service Worker 登録 & インストール
