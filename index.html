@@ -1755,6 +1755,29 @@ html[data-layout="programme"] { scroll-padding-top: max(64px, var(--bar-top-live
    物理方向で取る。各案の padding-inline（同じ強さ）より後ろに置き、どの案でもキーの文字がボタンの下に入らないようにする。 */
 :root .input-wrap > input.code-field { padding-right: 44px; }
 :root[dir="rtl"] .input-wrap > input.code-field { padding-left: 44px; padding-right: 10px; }
+/* 辞書のインポート（統合 / 置き換え / キャンセル）と置き換えの確認。どの案の骨組みにも入らない共通の画面。
+   ボタンの形は各案のものを使い、高さと「置き換え」の危険色だけは各案の .btn（同じ強さ）より後ろで決める。 */
+:root .di-dlg { margin: auto; inline-size: min(560px, calc(100vw - 24px)); max-block-size: calc(100vh - 32px); padding: 0; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--text); font-family: var(--font-ui); font-size: 14px; box-shadow: 0 24px 60px -20px rgba(0,0,0,0.45); }
+:root .di-dlg::backdrop { background: rgba(8, 12, 10, 0.5); }
+:root .di-danger { border-color: var(--danger-line); border-block-start: 4px solid var(--danger); }
+:root .di-in { display: grid; gap: 14px; padding: 18px 20px 20px; }
+:root .di-head { display: flex; align-items: center; gap: 10px; }
+:root .di-head h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+:root .di-head .icon-btn { margin-inline-start: auto; }
+:root .di-warn { color: var(--danger); }
+:root .di-lead { display: grid; gap: 8px; line-height: 1.6; }
+:root .di-file-row { display: flex; align-items: center; gap: 8px; min-inline-size: 0; color: var(--text-2); font-family: var(--font-mono); font-size: 13px; }
+:root .di-file { overflow-wrap: anywhere; }
+:root .di-strong { font-weight: 600; }
+:root .di-opts { display: grid; gap: 10px; }
+:root .di-opt { display: grid; gap: 6px; justify-items: start; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+:root .di-opt-danger { border-color: var(--danger-line); }
+:root .di-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+:root .di-dlg .btn { min-height: 36px; }
+:root .di-dlg .btn-danger, :root .di-dlg .btn-danger:hover { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-line); }
+:root .di-dlg .btn-danger:hover { border-color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+:root .di-dlg .btn-danger::before, :root .di-dlg .btn-danger::after { color: inherit; }
+@media (max-width: 760px), (pointer: coarse) { :root .di-in { padding: 14px; } :root .di-dlg .btn { min-height: 44px; } }
 </style>
 </head>
 <body>
@@ -2025,7 +2048,7 @@ html[data-layout="programme"] { scroll-padding-top: max(64px, var(--bar-top-live
 <span id="dict-count" data-part="DICT_TITLE"></span>
 </h2><div class="m-end"><div class="dict-toolbar" data-part="DICT_TOOLS">
   <button class="btn btn-sm" onclick="downloadUserDict()"><svg width="16" height="16" aria-hidden="true"><use href="#i-download"/></svg><span data-i18n="btn_dictdl">辞書をダウンロード</span></button>
-  <button class="btn btn-sm" onclick="document.getElementById('dict-import-1').click()"><svg width="16" height="16" aria-hidden="true"><use href="#i-upload"/></svg><span data-i18n="btn_dictimport">辞書をインポート</span></button>
+  <button class="btn btn-sm" data-dict-import onclick="document.getElementById('dict-import-1').click()"><svg width="16" height="16" aria-hidden="true"><use href="#i-upload"/></svg><span data-i18n="btn_dictimport">辞書をインポート</span></button>
   <input type="file" id="dict-import-1" accept=".json,application/json" style="display:none;" onchange="importUserDict(event)">
   <button class="btn btn-sm" onclick="cleanupUserDict()"><svg width="16" height="16" aria-hidden="true"><use href="#i-broom"/></svg><span data-i18n="btn_dictcleanup">カタカナだけの不要エントリを掃除</span></button>
   <button class="btn btn-sm" id="open-dict-manager" type="button" aria-expanded="false" aria-controls="fm-dict-manager"><svg width="16" height="16" aria-hidden="true"><use href="#i-table"/></svg><span data-i18n="btn_dictmanager">辞書マネージャー</span></button>
@@ -2617,6 +2640,24 @@ html[data-layout="programme"] { scroll-padding-top: max(64px, var(--bar-top-live
   </fieldset>
 </form>
 </dialog>
+<dialog id="dict-import-dlg" class="di-dlg" aria-labelledby="di-title" aria-describedby="di-lead">
+<div class="di-in">
+  <div class="di-head"><h2 id="di-title" data-i18n="ui_di_title">辞書のインポート</h2><button type="button" class="icon-btn" id="di-close" data-i18n-aria="ui_close" aria-label="閉じる"><svg width="18" height="18" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+  <div id="di-lead" class="di-lead"><p class="di-file-row"><svg width="16" height="16" aria-hidden="true"><use href="#i-upload"/></svg><bdi class="di-file" dir="auto"></bdi></p><p id="di-lead-t"></p></div>
+  <div class="di-opts">
+    <div class="di-opt"><button type="button" class="btn btn-primary" id="di-merge" aria-describedby="di-merge-d" data-i18n="ui_di_merge">統合する</button><p class="hint" id="di-merge-d" data-i18n="ui_di_merge_desc">既存の辞書に追加します。同じ原語はファイルの訳で上書きします。</p></div>
+    <div class="di-opt di-opt-danger"><button type="button" class="btn btn-danger" id="di-replace" aria-describedby="di-replace-d" data-i18n="ui_di_replace">置き換える…</button><p class="hint" id="di-replace-d" data-i18n="ui_di_replace_desc">既存の辞書を削除して、ファイルの内容だけにします。実行の前にもう一度確認します。</p></div>
+  </div>
+  <div class="di-foot"><button type="button" class="btn" id="di-cancel" data-i18n="ui_di_cancel">キャンセル</button></div>
+</div>
+</dialog>
+<dialog id="dict-replace-dlg" class="di-dlg di-danger" role="alertdialog" aria-labelledby="dr-title" aria-describedby="dr-desc">
+<div class="di-in">
+  <div class="di-head"><svg class="di-warn" width="20" height="20" aria-hidden="true"><use href="#i-alert"/></svg><h2 id="dr-title" data-i18n="ui_dr_title">既存の辞書を置き換えますか？</h2><button type="button" class="icon-btn" id="dr-close" data-i18n-aria="ui_close" aria-label="閉じる"><svg width="18" height="18" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+  <div id="dr-desc" class="di-lead"><p id="dr-lead" class="di-strong"></p><p class="hint" data-i18n="ui_dr_scope">置き換わるのは、「辞書をダウンロード」で保存されるユーザー辞書だけです。</p><p class="hint" data-i18n="ui_dr_backup">今の辞書を残したい場合は、キャンセルして先に「辞書をダウンロード」で保存してください。</p></div>
+  <div class="di-foot"><button type="button" class="btn btn-danger" id="di-replace-ok"></button><button type="button" class="btn" id="di-replace-cancel" data-i18n="ui_di_cancel">キャンセル</button></div>
+</div>
+</dialog>
 <div id="layout-live" class="visually-hidden" role="status" aria-live="polite"></div>
 <script type="application/json" id="layout-meta">[{"id":"matchday","name":"Matchday Desk","accent":"#0d6b45","steps":{"setup":"ai-title","input":"sec-input","review":"sec-review","output":"sec-output","dict":"dict"},"viewSteps":{"settings":"setup","dict":"dict"},"scrollSteps":["input","review","output"]},{"id":"studio","name":"Split Studio","accent":"#0b5cd5","steps":{"setup":"settings","input":"input","review":"review","output":"output","dict":"dict"},"viewSteps":{"settings":"setup","dict":"dict","input":"input","review":"review","output":"output"},"scrollSteps":[]},{"id":"guide","name":"Kickoff Guide","accent":"#0b6e64","steps":{"setup":"setup","input":"input","review":"review","output":"output","dict":"dict"},"viewSteps":{"setup":"setup","input":"input","review":"review","output":"output","dict":"dict"},"scrollSteps":[]},{"id":"deck","name":"Command Deck","accent":"#974405","steps":{"setup":"ch-setup","input":"ch-input","review":"ch-review","output":"ch-output","dict":"dict"},"viewSteps":{},"scrollSteps":["setup","input","review","output","dict"]},{"id":"board","name":"Review Board","accent":"#4f46e5","steps":{"setup":"tile-conn","input":"b-intake","review":"h-queue","output":"h-out","dict":"dict"},"viewSteps":{"dict":"dict"},"scrollSteps":["input","review"]},{"id":"rail","name":"Clubhouse Rail","accent":"#1d3a8a","steps":{"setup":"setup","input":"input","review":"review","output":"output","dict":"dict"},"viewSteps":{"setup":"setup","input":"input","review":"review","output":"output","dict":"dict"},"scrollSteps":[]},{"id":"programme","name":"Programme","accent":"#84163a","steps":{"setup":"ch-setup","input":"ch-input","review":"ch-review","output":"ch-output","dict":"dict"},"viewSteps":{},"scrollSteps":["setup","input","review","output","dict"]}]</script>
 <script>
@@ -2714,7 +2755,12 @@ const I18N = {
     msg_json_fail: "JSONの読み込みに失敗しました。ファイル形式を確認してください。",
     msg_badformat: "辞書の形式が正しくありません（オブジェクト形式である必要があります）。",
     msg_no_entries: "有効な辞書エントリが見つかりませんでした。",
-    msg_import_confirm: (n) => `現在 ${n} 件のユーザー辞書があります。\n\n「OK」= 統合（既存に追加・同じ語は上書き）\n「キャンセル」= 置き換え（既存を破棄して全部入れ替え）`,
+    ui_di_title: "辞書のインポート", ui_di_lead: (n, m) => `現在のユーザー辞書は ${n} 件、このファイルは ${m} 件です。取り込み方を選んでください。`,
+    ui_di_merge: "統合する", ui_di_merge_desc: "既存の辞書に追加します。同じ原語はファイルの訳で上書きします。", ui_di_replace: "置き換える…",
+    ui_di_replace_desc: "既存の辞書を削除して、ファイルの内容だけにします。実行の前にもう一度確認します。", ui_di_cancel: "キャンセル",
+    ui_dr_title: "既存の辞書を置き換えますか？", ui_dr_lead: (n, m) => `このブラウザのユーザー辞書 ${n} 件をすべて削除し、ファイルの ${m} 件に置き換えます。元に戻せません。`,
+    ui_dr_scope: "置き換わるのはユーザー辞書だけです。変換を実行するたびに、その時点のユーザー辞書の語はすべて辞書マネージャーにも取り込まれます（使われなかった語も含みます）。取り込まれた語は削除されず、この後の変換でも使われることがあります。", ui_dr_backup: "今の辞書を残したい場合は、キャンセルして先に「辞書をダウンロード」で保存してください。", ui_dr_ok: (n) => `${n} 件を削除して置き換える`,
+    msg_import_cancelled: "辞書のインポートを取り消しました。辞書は変更していません。", msg_import_busy: "別の辞書ファイルを処理中です。終わってから、もう一度選んでください。",
     msg_import_done: (mode,a,u,t) => `辞書をインポートしました（${mode}）。新規 ${a} 件 / 更新 ${u} 件 / 合計 ${t} 件。「解析して翻訳開始」を押すと反映されます。`,
     mode_merge: "統合", mode_replace: "置き換え",
     msg_gen_first: "先に .lnc コードを生成してください。",
@@ -2869,7 +2915,12 @@ const I18N = {
     msg_json_fail: "Failed to read JSON. Check the file format.",
     msg_badformat: "Invalid dictionary format (must be an object).",
     msg_no_entries: "No valid dictionary entries found.",
-    msg_import_confirm: (n) => `You currently have ${n} dictionary entries.\n\n"OK" = Merge (add to existing, overwrite same keys)\n"Cancel" = Replace (discard existing, full replace)`,
+    ui_di_title: "Import dictionary", ui_di_lead: (n, m) => `Your user dictionary has ${n} entries and this file has ${m}. Choose how to import it.`,
+    ui_di_merge: "Merge", ui_di_merge_desc: "Adds the file to your dictionary. Words that exist in both take the translation from the file.", ui_di_replace: "Replace…",
+    ui_di_replace_desc: "Deletes your dictionary and keeps only the file. You will be asked once more first.", ui_di_cancel: "Cancel",
+    ui_dr_title: "Replace your dictionary?", ui_dr_lead: (n, m) => `All ${n} entries of the user dictionary in this browser will be deleted and replaced with the ${m} entries of the file. This cannot be undone.`,
+    ui_dr_scope: "Only the user dictionary is replaced. Whenever a conversion runs, every word in it at that moment is also copied into the Dictionary Manager, even words the conversion did not use. Those copies are not deleted here and may still be used in later conversions.", ui_dr_backup: "To keep your current dictionary, cancel and save it first with \"Download dictionary\".", ui_dr_ok: (n) => `Delete ${n} entries and replace`,
+    msg_import_cancelled: "Dictionary import cancelled. Your dictionary was not changed.", msg_import_busy: "Another dictionary file is still being imported. Choose the file again when it has finished.",
     msg_import_done: (mode,a,u,t) => `Dictionary imported (${mode}). New ${a} / Updated ${u} / Total ${t}. Click "Parse & Translate" to apply.`,
     mode_merge: "Merge", mode_replace: "Replace",
     msg_gen_first: "Generate the .lnc code first.",
@@ -3010,7 +3061,12 @@ const I18N = {
     msg_json_fail: "读取 JSON 失败。请检查文件格式。",
     msg_badformat: "词典格式无效（必须是对象格式）。",
     msg_no_entries: "未找到有效的词典条目。",
-    msg_import_confirm: (n) => `你当前有 ${n} 个词典条目。\n\n\"确定\" = 合并（添加到现有，覆盖相同键）\n\"取消\" = 替换（丢弃现有，全部替换）`,
+    ui_di_title: "导入词典", ui_di_lead: (n, m) => `当前用户词典有 ${n} 个条目，此文件有 ${m} 个。请选择导入方式。`,
+    ui_di_merge: "合并", ui_di_merge_desc: "添加到现有词典。相同的原文以文件中的译名覆盖。", ui_di_replace: "替换…",
+    ui_di_replace_desc: "删除现有词典，只保留文件的内容。执行前会再确认一次。", ui_di_cancel: "取消",
+    ui_dr_title: "要替换现有词典吗？", ui_dr_lead: (n, m) => `将删除此浏览器中用户词典的全部 ${n} 个条目，并替换为文件中的 ${m} 个条目。此操作无法撤销。`,
+    ui_dr_scope: "只替换用户词典。每次执行转换时，当时用户词典中的所有词都会复制到词典管理器（包括未用到的词）。这些词不会因替换而删除，之后的转换中仍可能被使用。", ui_dr_backup: "如需保留当前词典，请取消，并先用“下载词典”保存。", ui_dr_ok: (n) => `删除 ${n} 个条目并替换`,
+    msg_import_cancelled: "已取消导入词典。词典没有改变。", msg_import_busy: "另一个词典文件正在处理中。请在完成后重新选择文件。",
     msg_import_done: (mode,a,u,t) => `词典已导入（${mode}）。新增 ${a} / 更新 ${u} / 合计 ${t}。点击\"解析并翻译\"以应用。`,
     mode_merge: "合并", mode_replace: "替换",
     msg_gen_first: "请先生成 .lnc 代码。",
@@ -3125,7 +3181,12 @@ const I18N = {
     msg_json_fail: "JSON 읽기에 실패했습니다. 파일 형식을 확인하세요.",
     msg_badformat: "사전 형식이 올바르지 않습니다 (객체 형식이어야 합니다).",
     msg_no_entries: "유효한 사전 항목을 찾을 수 없습니다.",
-    msg_import_confirm: (n) => `현재 ${n}개의 사전 항목이 있습니다.\n\n\"확인\" = 통합 (기존에 추가, 같은 키는 덮어쓰기)\n\"취소\" = 교체 (기존 폐기, 전체 교체)`,
+    ui_di_title: "사전 가져오기", ui_di_lead: (n, m) => `현재 사용자 사전에는 ${n}개, 이 파일에는 ${m}개의 항목이 있습니다. 가져오는 방법을 선택하세요.`,
+    ui_di_merge: "통합", ui_di_merge_desc: "기존 사전에 추가합니다. 같은 원어는 파일의 번역으로 덮어씁니다.", ui_di_replace: "교체…",
+    ui_di_replace_desc: "기존 사전을 삭제하고 파일의 내용만 남깁니다. 실행 전에 한 번 더 확인합니다.", ui_di_cancel: "취소",
+    ui_dr_title: "기존 사전을 교체할까요?", ui_dr_lead: (n, m) => `이 브라우저의 사용자 사전 ${n}개 항목을 모두 삭제하고 파일의 ${m}개 항목으로 교체합니다. 되돌릴 수 없습니다.`,
+    ui_dr_scope: "교체되는 것은 사용자 사전뿐입니다. 변환을 실행할 때마다 그 시점의 사용자 사전 단어가 모두 사전 관리자에도 복사됩니다(쓰이지 않은 단어 포함). 복사된 단어는 여기서 삭제되지 않으며 이후 변환에서도 쓰일 수 있습니다.", ui_dr_backup: "현재 사전을 남기려면 취소하고 먼저 \"사전 다운로드\"로 저장하세요.", ui_dr_ok: (n) => `${n}개 삭제하고 교체`,
+    msg_import_cancelled: "사전 가져오기를 취소했습니다. 사전은 바뀌지 않았습니다.", msg_import_busy: "다른 사전 파일을 처리하는 중입니다. 끝난 뒤 파일을 다시 선택하세요.",
     msg_import_done: (mode,a,u,t) => `사전을 가져왔습니다 (${mode}). 신규 ${a} / 갱신 ${u} / 합계 ${t}. \"분석 및 번역\"을 누르면 반영됩니다.`,
     mode_merge: "통합", mode_replace: "교체",
     msg_gen_first: "먼저 .lnc 코드를 생성하세요.",
@@ -3240,7 +3301,12 @@ const I18N = {
     msg_json_fail: "JSON konnte nicht gelesen werden. Dateiformat prüfen.",
     msg_badformat: "Ungültiges Wörterbuchformat (muss ein Objekt sein).",
     msg_no_entries: "Keine gültigen Wörterbucheinträge gefunden.",
-    msg_import_confirm: (n) => `Du hast derzeit ${n} Wörterbucheinträge.\n\n\"OK\" = Zusammenführen (hinzufügen, gleiche Schlüssel überschreiben)\n\"Abbrechen\" = Ersetzen (vorhandene verwerfen, komplett ersetzen)`,
+    ui_di_title: "Wörterbuch importieren", ui_di_lead: (n, m) => `Dein Benutzerwörterbuch hat ${n} Einträge, diese Datei ${m}. Wähle, wie importiert wird.`,
+    ui_di_merge: "Zusammenführen", ui_di_merge_desc: "Fügt die Datei deinem Wörterbuch hinzu. Wörter, die in beiden stehen, erhalten die Übersetzung aus der Datei.", ui_di_replace: "Ersetzen…",
+    ui_di_replace_desc: "Löscht dein Wörterbuch und behält nur die Datei. Vorher wird noch einmal nachgefragt.", ui_di_cancel: "Abbrechen",
+    ui_dr_title: "Wörterbuch ersetzen?", ui_dr_lead: (n, m) => `Alle ${n} Einträge des Benutzerwörterbuchs in diesem Browser werden gelöscht und durch die ${m} Einträge der Datei ersetzt. Das lässt sich nicht rückgängig machen.`,
+    ui_dr_scope: "Ersetzt wird nur das Benutzerwörterbuch. Bei jeder Umwandlung werden alle Wörter, die gerade darin stehen, auch in den Wörterbuch-Manager übernommen – auch ungenutzte. Diese werden hier nicht gelöscht und können später weiter verwendet werden.", ui_dr_backup: "Um dein aktuelles Wörterbuch zu behalten, brich ab und speichere es zuerst mit „Wörterbuch herunterladen“.", ui_dr_ok: (n) => `${n} Einträge löschen und ersetzen`,
+    msg_import_cancelled: "Wörterbuchimport abgebrochen. Dein Wörterbuch wurde nicht geändert.", msg_import_busy: "Eine andere Wörterbuchdatei wird noch importiert. Wähle die Datei erneut, wenn das abgeschlossen ist.",
     msg_import_done: (mode,a,u,t) => `Wörterbuch importiert (${mode}). Neu ${a} / Aktualisiert ${u} / Gesamt ${t}. \"Analysieren & Übersetzen\" klicken zum Anwenden.`,
     mode_merge: "Zusammenführen", mode_replace: "Ersetzen",
     msg_gen_first: "Zuerst den .lnc-Code erzeugen.",
@@ -3355,7 +3421,12 @@ const I18N = {
     msg_json_fail: "Échec de lecture du JSON. Vérifiez le format du fichier.",
     msg_badformat: "Format de dictionnaire invalide (doit être un objet).",
     msg_no_entries: "Aucune entrée de dictionnaire valide trouvée.",
-    msg_import_confirm: (n) => `Vous avez actuellement ${n} entrées de dictionnaire.\n\n\"OK\" = Fusionner (ajouter à l'existant, écraser les mêmes clés)\n\"Annuler\" = Remplacer (supprimer l'existant, tout remplacer)`,
+    ui_di_title: "Importer un dictionnaire", ui_di_lead: (n, m) => `Votre dictionnaire utilisateur contient ${n} entrées et ce fichier ${m}. Choisissez comment l’importer.`,
+    ui_di_merge: "Fusionner", ui_di_merge_desc: "Ajoute le fichier à votre dictionnaire. Les mots présents des deux côtés prennent la traduction du fichier.", ui_di_replace: "Remplacer…",
+    ui_di_replace_desc: "Supprime votre dictionnaire et ne garde que le fichier. Une confirmation vous sera demandée avant.", ui_di_cancel: "Annuler",
+    ui_dr_title: "Remplacer votre dictionnaire ?", ui_dr_lead: (n, m) => `Les ${n} entrées du dictionnaire utilisateur de ce navigateur seront supprimées et remplacées par les ${m} entrées du fichier. Cette action est irréversible.`,
+    ui_dr_scope: "Seul le dictionnaire utilisateur est remplacé. À chaque conversion, tous ses mots du moment sont aussi copiés dans le gestionnaire de dictionnaire, même ceux non utilisés. Ces copies ne sont pas supprimées ici et peuvent encore servir ensuite.", ui_dr_backup: "Pour garder votre dictionnaire actuel, annulez et enregistrez-le d’abord avec « Télécharger le dictionnaire ».", ui_dr_ok: (n) => `Supprimer ${n} entrées et remplacer`,
+    msg_import_cancelled: "Import du dictionnaire annulé. Votre dictionnaire n’a pas été modifié.", msg_import_busy: "Un autre fichier de dictionnaire est en cours d’import. Choisissez à nouveau le fichier une fois terminé.",
     msg_import_done: (mode,a,u,t) => `Dictionnaire importé (${mode}). Nouveaux ${a} / Mis à jour ${u} / Total ${t}. Cliquez sur \"Analyser & Traduire\" pour appliquer.`,
     mode_merge: "Fusionner", mode_replace: "Remplacer",
     msg_gen_first: "Générez d'abord le code .lnc.",
@@ -3470,7 +3541,12 @@ const I18N = {
     msg_json_fail: "JSON legi non potuit. Formam fasciculi inspice.",
     msg_badformat: "Forma glossarii invalida (objectum esse debet).",
     msg_no_entries: "Nullae inscriptiones glossarii validae inventae.",
-    msg_import_confirm: (n) => `Nunc ${n} inscriptiones glossarii habes.\n\n\"OK\" = Coniungere (addere, easdem claves superscribere)\n\"Cancellare\" = Substituere (existentia abicere, omnia substituere)`,
+    ui_di_title: "Glossarium importare", ui_di_lead: (n, m) => `Glossarium tuum ${n} inscriptiones habet, hic fasciculus ${m}. Elige quomodo importetur.`,
+    ui_di_merge: "Coniungere", ui_di_merge_desc: "Fasciculum glossario tuo addit. Verba in utroque posita versionem fasciculi accipiunt.", ui_di_replace: "Substituere…",
+    ui_di_replace_desc: "Glossarium tuum delet et solum fasciculum servat. Ante iterum interrogaberis.", ui_di_cancel: "Cancellare",
+    ui_dr_title: "Glossarium substituere?", ui_dr_lead: (n, m) => `Omnes ${n} inscriptiones glossarii huius navigatri delebuntur et ${m} inscriptionibus fasciculi substituentur. Hoc revocari non potest.`,
+    ui_dr_scope: "Solum glossarium usoris substituitur. Quotiens conversio fit, omnia eius verba tum praesentia etiam in Administratorem Glossarii transcribuntur, etiam non adhibita. Haec hic non delentur et postea adhiberi possunt.", ui_dr_backup: "Ut glossarium praesens serves, cancella et prius \"Glossarium demittere\" serva.", ui_dr_ok: (n) => `${n} inscriptiones delere et substituere`,
+    msg_import_cancelled: "Importatio glossarii cancellata est. Glossarium tuum non mutatum est.", msg_import_busy: "Alius fasciculus glossarii adhuc importatur. Cum finitum erit, fasciculum iterum elige.",
     msg_import_done: (mode,a,u,t) => `Glossarium importatum (${mode}). Nova ${a} / Renovata ${u} / Summa ${t}. \"Resolvere & Vertere\" preme ut applices.`,
     mode_merge: "Coniungere", mode_replace: "Substituere",
     msg_gen_first: "Prius codicem .lnc genera.",
@@ -3585,7 +3661,12 @@ const I18N = {
     msg_json_fail: "קריאת ה-JSON נכשלה. בדקו את פורמט הקובץ.",
     msg_badformat: "פורמט מילון לא תקין (חייב להיות אובייקט).",
     msg_no_entries: "לא נמצאו ערכי מילון תקינים.",
-    msg_import_confirm: (n) => `יש לכם כעת ${n} ערכי מילון.\n\n\"אישור\" = מיזוג (הוספה לקיים, דריסת מפתחות זהים)\n\"ביטול\" = החלפה (מחיקת הקיים, החלפה מלאה)`,
+    ui_di_title: "ייבוא מילון", ui_di_lead: (n, m) => `במילון המשתמש יש כעת ${n} ערכים ובקובץ הזה ${m}. בחרו איך לייבא.`,
+    ui_di_merge: "מיזוג", ui_di_merge_desc: "מוסיף את הקובץ למילון הקיים. מילים שמופיעות בשניהם מקבלות את התרגום מהקובץ.", ui_di_replace: "החלפה…",
+    ui_di_replace_desc: "מוחק את המילון הקיים ומשאיר רק את תוכן הקובץ. לפני הביצוע תתבקשו לאשר שוב.", ui_di_cancel: "ביטול",
+    ui_dr_title: "להחליף את המילון הקיים?", ui_dr_lead: (n, m) => `כל ${n} הערכים של מילון המשתמש בדפדפן הזה יימחקו ויוחלפו ב-${m} הערכים שבקובץ. אי אפשר לבטל את הפעולה.`,
+    ui_dr_scope: "מוחלף רק מילון המשתמש. בכל המרה, כל המילים שבמילון המשתמש באותו רגע מועתקות גם למנהל המילון, גם כאלה שלא שימשו. הן לא נמחקות כאן ועשויות לשמש בהמרות הבאות.", ui_dr_backup: "כדי לשמור את המילון הנוכחי, בטלו ושמרו אותו קודם עם \"הורד מילון\".", ui_dr_ok: (n) => `מחיקת ${n} ערכים והחלפה`,
+    msg_import_cancelled: "ייבוא המילון בוטל. המילון לא השתנה.", msg_import_busy: "קובץ מילון אחר עדיין בייבוא. בחרו את הקובץ שוב כשהוא יסתיים.",
     msg_import_done: (mode,a,u,t) => `המילון יובא (${mode}). חדשים ${a} / עודכנו ${u} / סך הכול ${t}. לחצו \"נתח ותרגם\" להחלה.`,
     mode_merge: "מיזוג", mode_replace: "החלפה",
     msg_gen_first: "צרו תחילה את קוד ה-‎.lnc.",
@@ -5612,7 +5693,7 @@ function renderTable() {
       <button class="btn btn-secondary" onclick="downloadUserDict()" style="font-size:12px;">
         ${t('btn_dictdl')}
       </button>
-      <button class="btn btn-secondary" onclick="document.getElementById('dict-import').click()" style="font-size:12px;">
+      <button class="btn btn-secondary" data-dict-import onclick="document.getElementById('dict-import').click()" style="font-size:12px;">
         ${t('btn_dictimport')}
       </button>
       <input type="file" id="dict-import" accept=".json,application/json" style="display:none;" onchange="importUserDict(event)">
@@ -5843,55 +5924,201 @@ function downloadUserDict() {
 }
 
 // JSONファイルからユーザー辞書をインポート
+// 既存の辞書があるときは「統合 / 置き換え / キャンセル」を選んでもらう（#dict-import-dlg）。置き換えは
+// 実行の直前にもう一度確かめる（#dict-replace-dlg）。どちらの画面も、キャンセル・Esc・閉じるボタンなど
+// ボタンを選ばずに閉じたら何も変えない（以前の confirm() は「キャンセル」を置き換えに割り当てていた）。
+// 置き換えの対象は localStorage の fm_user_dict だけ。辞書マネージャーの記録は変えない。
+// ファイルを読んでいる間と確認中は次のファイルを受け付けない（2つのインポートを混ぜない）。
+let dictImportBusy = false;
 function importUserDict(event) {
-  const file = event.target.files?.[0];
-  event.target.value = '';
+  const input = event.target;
+  const file = input.files?.[0];
+  input.value = '';
   if (!file) return;
+  if (dictImportBusy) { showAlert('warn', t('msg_import_busy')); return; }
+  dictImportBusy = true;
+  const opener = document.activeElement;
 
   const reader = new FileReader();
   reader.onload = e => {
-    let imported;
-    try {
-      imported = JSON.parse(e.target.result);
-    } catch {
-      showAlert('error', t('msg_json_fail'));
-      return;
-    }
-    // 形式チェック: { "key": "value", ... } のフラットなオブジェクトのみ受け付ける
-    if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
-      showAlert('error', t('msg_badformat'));
-      return;
-    }
-    const entries = Object.entries(imported).filter(([k, v]) => typeof k === 'string' && typeof v === 'string');
-    if (entries.length === 0) {
-      showAlert('error', t('msg_no_entries'));
-      return;
-    }
-
-    const existing = getUserDict();
-    const existingCount = Object.keys(existing).length;
-
-    let mode = 'merge';
-    if (existingCount > 0) {
-      mode = confirm(t('msg_import_confirm', existingCount)) ? 'merge' : 'replace';
-    }
-
-    const merged = mode === 'merge' ? { ...existing } : {};
-    let added = 0, updated = 0;
-    entries.forEach(([k, v]) => {
-      const key = k.toLowerCase();
-      if (merged[key] !== undefined && merged[key] !== v) updated++;
-      else if (merged[key] === undefined) added++;
-      merged[key] = v;
-    });
-
-    saveUserDict(merged);
-    const total = Object.keys(merged).length;
-    showAlert('success',
-      t('msg_import_done', mode === 'merge' ? t('mode_merge') : t('mode_replace'), added, updated, total)
-    );
+    runDictImport(e.target.result, file.name, opener)
+      .catch(err => logError('importUserDict', err))
+      .finally(() => { dictImportBusy = false; });
+  };
+  reader.onerror = () => {
+    dictImportBusy = false;
+    logError('importUserDict:read', reader.error || new Error('read failed'));
+    showAlert('error', t('msg_json_fail'));
   };
   reader.readAsText(file);
+}
+
+async function runDictImport(text, fileName, opener) {
+  let imported;
+  try {
+    imported = JSON.parse(text);
+  } catch {
+    showAlert('error', t('msg_json_fail'));
+    return;
+  }
+  // 形式チェック: { "key": "value", ... } のフラットなオブジェクトのみ受け付ける
+  if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
+    showAlert('error', t('msg_badformat'));
+    return;
+  }
+  const entries = Object.entries(imported).filter(([k, v]) => typeof k === 'string' && typeof v === 'string');
+  if (entries.length === 0) {
+    showAlert('error', t('msg_no_entries'));
+    return;
+  }
+
+  let mode = 'merge';
+  const existingCount = Object.keys(getUserDict()).length;
+  if (existingCount > 0) {
+    mode = await askDictImportMode(existingCount, entries.length, fileName);
+    if (mode === 'replace') mode = await askDictReplace(existingCount, entries.length);
+    restoreDictImportFocus(opener);
+    if (mode !== 'merge' && mode !== 'replace') {
+      showAlert('warn', t('msg_import_cancelled'));
+      return;
+    }
+  }
+
+  // 統合は「選んだ時点」の辞書に重ねる（読み込んだ後に別タブが書いた分も消さない）
+  const merged = mode === 'merge' ? { ...getUserDict() } : {};
+  let added = 0, updated = 0;
+  entries.forEach(([k, v]) => {
+    const key = k.toLowerCase();
+    if (merged[key] !== undefined && merged[key] !== v) updated++;
+    else if (merged[key] === undefined) added++;
+    merged[key] = v;
+  });
+
+  saveUserDict(merged);
+  const total = Object.keys(merged).length;
+  showAlert('success',
+    t('msg_import_done', mode === 'merge' ? t('mode_merge') : t('mode_replace'), added, updated, total)
+  );
+}
+
+function askDictImportMode(existingCount, fileCount, fileName) {
+  const dlg = document.getElementById('dict-import-dlg');
+  dlg.querySelector('.di-file').textContent = fileName;
+  document.getElementById('di-lead-t').textContent = t('ui_di_lead', existingCount, fileCount);
+  return askDialog(dlg, { 'di-merge': 'merge', 'di-replace': 'replace' }, 'di-merge');
+}
+
+function askDictReplace(existingCount, fileCount) {
+  const dlg = document.getElementById('dict-replace-dlg');
+  document.getElementById('dr-lead').textContent = t('ui_dr_lead', existingCount, fileCount);
+  document.getElementById('di-replace-ok').textContent = t('ui_dr_ok', existingCount);
+  return askDialog(dlg, { 'di-replace-ok': 'replace' }, 'di-replace-cancel');
+}
+
+// 選ばれたボタンの答えで解決する。ボタン以外で閉じた（キャンセル・Esc・閉じる・close()）ら 'cancel'。
+// returnValue は見ない（閉じ方によって置き換え・統合へ進む経路を作らない）。答えは最初の1回だけ。
+// 画面を開いた操作の続き（ダブルクリック・ダブルタップの2回目、押し続けたキー）は答えにしない（followOnInput）。
+function askDialog(dlg, choices, firstFocus) {
+  return new Promise(resolve => {
+    let answer = 'cancel';
+    const ac = new AbortController();
+    const on = { signal: ac.signal };
+    const finish = () => { ac.abort(); resolve(answer); };
+    const shut = () => {
+      if (typeof dlg.close === 'function') dlg.close();
+      else { dlg.removeAttribute('open'); finish(); }
+    };
+    let isFollowOn = () => false;
+    dlg.querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => {
+        if (!dlg.hasAttribute('open') || isFollowOn()) return;
+        if (Object.prototype.hasOwnProperty.call(choices, b.id)) answer = choices[b.id];
+        shut();
+      }, on);
+    });
+    dlg.addEventListener('close', finish, on);
+    dlg.returnValue = '';
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    isFollowOn = followOnInput(dlg, ac.signal);
+    const first = document.getElementById(firstFocus);
+    if (first) first.focus();
+  });
+}
+
+// 画面が開く前に始まった操作の続きを、その画面への入力として扱わないための見張り。
+// 時間の 2 規則とキーのリピートの扱いは、Chromium が自分の確認画面で使う保護（InputEventActivationProtector の
+// 既定の規則）を参考にしている。click 回数と Space の離しの規則は、このアプリで加えたもの:
+//   - 画面が開いてから間隔以内に始まったポインター操作（マウス・ペン・タッチ）は答えにしない
+//   - 前の押下から間隔以内に続く押下も同じ連続操作とみなす（連打は何回続いても答えにしない）
+//   - システムが2回目以降と数えたクリック（detail > 1）は、その連続がこの画面で始まったのでなければ答えにしない
+//     （ダブルクリック時間を長く設定している人の2回目は、間隔を過ぎても続きとして届く）
+//   - キーの自動リピートと、この画面で押していない Space の離しは、ボタンを押したことにしない
+// ポインターの押下の記録は、押している間に届いた無関係なキー入力や、アプリ自身の element.click() では消さない
+// （消すと、その後の click が押下を伴わないクリックとして通ってしまう）。ポインターからの click かどうかは
+// click 自身で見分ける: Chrome などでは click が pointerType を持ち、キー操作による押下と element.click() は ''
+// （detail 0）。pointerType の無い環境では detail（クリック回数。キー操作・element.click() は 0）で見分ける。
+// pointerType を持つ click は、同じ pointerId の押下だけで判断する（別のポインターの押下では判断しない）。
+// pointerType の無い環境の click はどのポインターのものか分からない。そこで、前の click の後に離された
+// ポインターの押下を全部見て、1 つでも早すぎる押下（またはこの画面で押下を見ていないポインター）があれば
+// 答えにしない（見分けられないときは答えにしない側に倒す。その場合はもう一度押せば答えになる）。
+// 押下を伴わないクリックはそのまま受け付ける。Windows の UI オートメーション（支援技術）からの実行は、
+// Chrome ではポインターの押下として届くので、マウスと同じ規則になる。Esc は対象外。
+// Pointer Events の無い環境では押下が見えないので、時間の規則は働かない（click 回数の規則だけ）。
+// 間隔は固定の 500 ms（Windows の既定のダブルクリック時間）。Web から OS の設定は読めないので、
+// 利用者が OS のダブルクリック時間を変えても追従しない（Chromium は Windows では OS の設定に従う）。
+const DIALOG_FOLLOW_ON_MS = 500;
+function followOnInput(dlg, signal) {
+  const now = () => performance.now();
+  const at = e => (e.timeStamp > 0 && e.timeStamp <= now()) ? e.timeStamp : now();
+  const cap = { signal, capture: true };
+  let lastPress = now();        // 開いた操作の押下はこれより前
+  const presses = new Map();    // pointerId -> まだクリックになっていないポインター押下
+  let released = [];            // 前の click の後に離されたポインターの押下（この画面で見ていない押下は null）
+  let seriesHere = false;       // この画面が開いた後に、新しいクリックの連続が始まったか
+  let spaceDown = false;
+  let followOn = false;
+  const early = p => !p || !p.fresh;
+  document.addEventListener('pointerdown', e => {
+    const t = at(e);
+    presses.set(e.pointerId, { fresh: t - lastPress >= DIALOG_FOLLOW_ON_MS });
+    lastPress = t;
+  }, cap);
+  document.addEventListener('pointerup', e => { released.push(presses.get(e.pointerId) || null); }, cap);
+  document.addEventListener('pointercancel', e => { presses.delete(e.pointerId); }, cap);
+  document.addEventListener('mousedown', e => { if (e.detail <= 1) seriesHere = true; }, cap);
+  document.addEventListener('click', e => {
+    const typed = typeof e.pointerType === 'string';
+    const fromPointer = typed ? e.pointerType !== '' : e.detail > 0;
+    if (!fromPointer) { followOn = false; return; }
+    // pointerType を持つ click: 自分の押下を見ていなければ、押下は画面が開く前（またはキャンセル済み）
+    const tooEarly = typed ? early(presses.get(e.pointerId)) : released.some(early);
+    presses.clear();
+    released = [];
+    followOn = tooEarly || (e.detail > 1 && !seriesHere);
+  }, cap);
+  dlg.addEventListener('keydown', e => {
+    const space = e.key === ' ' || e.key === 'Spacebar';
+    if (e.key !== 'Enter' && !space) return;
+    if (e.repeat) { e.preventDefault(); return; }
+    if (space) spaceDown = true;
+  }, cap);
+  dlg.addEventListener('keyup', e => {
+    if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    if (!spaceDown) e.preventDefault();
+    spaceDown = false;
+  }, cap);
+  return () => followOn;
+}
+
+// ファイル選択を開いたボタンへ戻す。そのボタンが描き直しで消えていたら、押せる別の「辞書をインポート」へ。
+function restoreDictImportFocus(opener) {
+  const tryFocus = el => {
+    if (!el || el === document.body || !el.isConnected || el.closest('[inert], [hidden]')) return false;
+    try { el.focus({ preventScroll: true }); } catch { return false; }
+    return document.activeElement === el;
+  };
+  if (tryFocus(opener)) return;
+  for (const b of document.querySelectorAll('[data-dict-import]')) if (tryFocus(b)) return;
 }
 
 // ============================

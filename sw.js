@@ -40,7 +40,7 @@
  * し、旧 worker の cache は install でも activate でも一切変わらない（v41 の独立監査: 同名 cache への逐次
  * 複写が容量不足で途中失敗し、旧 worker の cache を部分的に上書きした）。
  */
-const BUILD_ID = '844b1b12c1628b21';
+const BUILD_ID = 'ed0cff003f32fbfc';
 const CACHE_VERSION = 'v41';
 const CACHE = 'fmlnc-' + CACHE_VERSION + (BUILD_ID ? '-' + BUILD_ID : '');
 
@@ -284,7 +284,7 @@ const REQUIRED_ASSETS = SHELL_ASSETS.concat(RESOLVER_ASSETS, LAYOUT_THUMB_ASSETS
  *      （1 だけで判定する）。
  * 失敗した install は候補 cache を残さず、旧 worker が制御を続ける（skipWaiting しない）。
  */
-const SHELL_HTML_SHA256 = '77e7b73c9b8d82da1e66399226c4fea67ab788dbcfc0a17295e4cddff9c4fe05';
+const SHELL_HTML_SHA256 = '6e2a711bf77a961af74974002e1ca4ee73bb3ea433af77499eb155d968098b3a';
 const SHELL_HTML = ['./', './index.html'];
 const RE_SHELL_ENTRY = /var \w+_MODULE = '(\.\/[^']+\.js)';/g;
 
@@ -295,8 +295,8 @@ const RE_SHELL_ENTRY = /var \w+_MODULE = '(\.\/[^']+\.js)';/g;
  * **この build のもの**であることを1件ずつ確かめるのに使う（別 build の公開中は書き込まずに拒否する）。
  */
 const PRECACHE_SHA256 = {
-  "./": "77e7b73c9b8d82da1e66399226c4fea67ab788dbcfc0a17295e4cddff9c4fe05",
-  "./index.html": "77e7b73c9b8d82da1e66399226c4fea67ab788dbcfc0a17295e4cddff9c4fe05",
+  "./": "6e2a711bf77a961af74974002e1ca4ee73bb3ea433af77499eb155d968098b3a",
+  "./index.html": "6e2a711bf77a961af74974002e1ca4ee73bb3ea433af77499eb155d968098b3a",
   "./manifest.json": "bbf441f0beb35ddd93a4190074a1af99b5135aa847cad32c4af1a62347fd288e",
   "./assets/build-35096d1b0de6/dictionary-ai-orchestrator.js": "36f7ff53d0d5c5ad43d1f281941c0e4837d0ed4e48bda095831886c7ae627a7f",
   "./assets/build-35096d1b0de6/dictionary-manager-ui.js": "ccf3b07d1f88028a947dfaff31b31f5b943bf1f46834a3d4909e87f47c5f5788",
