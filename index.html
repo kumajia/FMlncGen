@@ -172,6 +172,19 @@
   .review-confirm.btn { min-height: 28px; padding: 0 10px; font-size: 12px; margin-inline-start: 6px; }
   #table-area > .btn-row:last-child { margin-top: 12px !important; }
   #table-area > .btn-row:last-child .btn { min-height: 32px; font-size: 12.5px !important; }
+  /* 「全件を辞書に追加」の結果。操作行のすぐ上に高さを先に取っておき、結果が出ても押したボタンを動かさない。 */
+  /* 取っておく高さは画面幅ではなく、この欄自体の幅で決める（Studio の 3 列表示などでは画面が広くても欄が狭い）。 */
+  .save-result { container-type: inline-size; margin: 10px 0 0; }
+  .save-result-slot { display: flex; align-items: flex-start; min-block-size: calc(1.5em + 6px); font-size: 12.5px; line-height: 1.5; }
+  .save-result-msg { display: flex; align-items: flex-start; gap: 6px; max-inline-size: 100%; padding: 2px 8px; border: 1px solid; border-radius: var(--r-sm); animation: saveResultIn 0.3s ease-out; }
+  .save-result-msg svg { flex: none; margin-block-start: 0.2em; }
+  .save-result-msg time, .save-result-nth { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .save-result-slot[data-state="success"] .save-result-msg { background: var(--primary-soft); border-color: color-mix(in srgb, var(--primary-text) 40%, transparent); color: var(--primary-text); }
+  .save-result-slot[data-state="warn"] .save-result-msg { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+  .save-result-slot[data-state="error"] .save-result-msg { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); }
+  @keyframes saveResultIn { from { opacity: 0.25; } to { opacity: 1; } }
+  @container (max-width: 470px) { .save-result-slot { min-block-size: calc(3em + 6px); } }
+  @container (max-width: 250px) { .save-result-slot { min-block-size: calc(6em + 6px); } }
   .empty-state { display: grid; justify-items: center; gap: 8px; padding: 32px 16px; color: var(--text-3); font-size: 13px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r); }
   .empty-icon { inline-size: 26px; block-size: 26px; color: var(--text-3); opacity: 0.8; }
   .output-textarea { min-height: 220px; background: var(--code-bg); font-size: 12.5px; line-height: 1.7; }
@@ -2781,8 +2794,12 @@ const I18N = {
     btn_stop: "停止",
     btn_importlnc: ".lncを読み込み",
     btn_savealldict: "全件を辞書に追加",
-    msg_savealldict: (n) => `${n} 件を辞書に追加しました。`,
-    msg_savealldict_skip: (n,sk) => `${n} 件を辞書に追加しました（原語が無い ${sk} 件は除外）。`,
+    msg_savealldict: (n) => `${n} 件を辞書に保存しました。`,
+    msg_savealldict_skip: (n,sk) => `${n} 件を辞書に保存しました（保存できない ${sk} 件は除外）。`,
+    msg_savealldict_none: "保存できる項目がありません。",
+    msg_savealldict_none_skip: (sk) => `保存できる項目がありません（保存できない ${sk} 件は除外）。`,
+    msg_savealldict_fail: "辞書に保存できませんでした。何も保存されていません。",
+    msg_savealldict_press: (n) => `${n} 回目`,
     msg_restored: (n, mins) => `前回の作業を復元しました（${n} 件・約${mins}分前）。新しく始めるには「クリア」。`,
     msg_restored_review: (n, held, mins) => `前回の作業を復元しました（${n} 件・約${mins}分前）。旧版で作られた訳のうち ${held} 件は「要確認」です。「解析して翻訳開始」で訳し直すか、行ごとに「確認」するまで .lnc に出力しません。前回の出力欄は復元していません（元のデータは保存してあります）。`,
     warn_review_skipped: (n) => `「要確認」の ${n} 件は .lnc に出力していません。訳し直すか、行ごとに「確認」してください。`,
@@ -2941,8 +2958,12 @@ const I18N = {
     btn_stop: "Stop",
     btn_importlnc: "Load .lnc",
     btn_savealldict: "Add all to dictionary",
-    msg_savealldict: (n) => `Added ${n} entries to the dictionary.`,
-    msg_savealldict_skip: (n,sk) => `Added ${n} entries (skipped ${sk} with no source term).`,
+    msg_savealldict: (n) => `Saved ${n} ${n === 1 ? 'entry' : 'entries'} to the dictionary.`,
+    msg_savealldict_skip: (n,sk) => `Saved ${n} ${n === 1 ? 'entry' : 'entries'} (${sk} skipped).`,
+    msg_savealldict_none: "Nothing could be saved.",
+    msg_savealldict_none_skip: (sk) => `Nothing could be saved (${sk} skipped).`,
+    msg_savealldict_fail: "Could not save to the dictionary. Nothing was saved.",
+    msg_savealldict_press: (n) => `#${n}`,
     msg_restored: (n, mins) => `Restored your previous work (${n} rows, ~${mins} min ago). Use "Clear" to start fresh.`,
     msg_restored_review: (n, held, mins) => `Restored your previous work (${n} rows, ~${mins} min ago). ${held} reading(s) made by the previous version need checking: they stay out of the .lnc until you run "Parse & Translate" again or confirm each row. The previous output box was not restored (the original data is kept).`,
     warn_review_skipped: (n) => `${n} row(s) that need checking were left out of the .lnc. Translate them again or confirm each row.`,
@@ -3054,6 +3075,12 @@ const I18N = {
     msg_img_pasted: "已粘贴图片。请点击\"从图片提取\"。",
     msg_extracterr: (e) => `图片提取错误: ${e}`,
     msg_savedict: (n) => `已将 ${n} 个词保存到用户词典。下次会自动填充。`,
+    msg_savealldict: (n) => `已将 ${n} 项保存到词典。`,
+    msg_savealldict_skip: (n,sk) => `已保存 ${n} 项（跳过 ${sk} 项）。`,
+    msg_savealldict_none: "没有可以保存的项目。",
+    msg_savealldict_none_skip: (sk) => `没有可以保存的项目（跳过 ${sk} 项）。`,
+    msg_savealldict_fail: "保存到词典失败，未保存任何内容。",
+    msg_savealldict_press: (n) => `第${n}次`,
     msg_confirm_resetdict: "要删除整个用户词典吗？",
     msg_resetdict: "用户词典已重置。",
     msg_dict_empty: "用户词典为空。请先保存一些词。",
@@ -3174,6 +3201,12 @@ const I18N = {
     msg_img_pasted: "이미지를 붙여넣었습니다. \"이미지에서 추출\"을 클릭하세요.",
     msg_extracterr: (e) => `이미지 추출 오류: ${e}`,
     msg_savedict: (n) => `${n}개 단어를 사용자 사전에 저장했습니다. 다음에 자동 입력됩니다.`,
+    msg_savealldict: (n) => `${n}개 항목을 사전에 저장했습니다.`,
+    msg_savealldict_skip: (n,sk) => `${n}개 항목을 저장했습니다 (${sk}개 제외).`,
+    msg_savealldict_none: "저장할 수 있는 항목이 없습니다.",
+    msg_savealldict_none_skip: (sk) => `저장할 수 있는 항목이 없습니다 (${sk}개 제외).`,
+    msg_savealldict_fail: "사전에 저장하지 못했습니다. 아무것도 저장되지 않았습니다.",
+    msg_savealldict_press: (n) => `${n}회째`,
     msg_confirm_resetdict: "사용자 사전을 모두 삭제할까요?",
     msg_resetdict: "사용자 사전을 초기화했습니다.",
     msg_dict_empty: "사용자 사전이 비어 있습니다. 먼저 단어를 저장하세요.",
@@ -3294,6 +3327,12 @@ const I18N = {
     msg_img_pasted: "Bild eingefügt. \"Aus Bildern extrahieren\" klicken.",
     msg_extracterr: (e) => `Bildextraktionsfehler: ${e}`,
     msg_savedict: (n) => `${n} Wörter im Wörterbuch gespeichert. Beim nächsten Mal automatisch ausgefüllt.`,
+    msg_savealldict: (n) => `${n} ${n === 1 ? 'Eintrag' : 'Einträge'} im Wörterbuch gespeichert.`,
+    msg_savealldict_skip: (n,sk) => `${n} ${n === 1 ? 'Eintrag' : 'Einträge'} gespeichert (${sk} übersprungen).`,
+    msg_savealldict_none: "Nichts zu speichern.",
+    msg_savealldict_none_skip: (sk) => `Nichts zu speichern (${sk} übersprungen).`,
+    msg_savealldict_fail: "Speichern fehlgeschlagen, nichts gespeichert.",
+    msg_savealldict_press: (n) => `Nr. ${n}`,
     msg_confirm_resetdict: "Gesamtes Benutzerwörterbuch löschen?",
     msg_resetdict: "Benutzerwörterbuch zurückgesetzt.",
     msg_dict_empty: "Benutzerwörterbuch ist leer. Zuerst Wörter speichern.",
@@ -3414,6 +3453,12 @@ const I18N = {
     msg_img_pasted: "Image collée. Cliquez sur \"Extraire des images\".",
     msg_extracterr: (e) => `Erreur d'extraction d'image : ${e}`,
     msg_savedict: (n) => `${n} mots enregistrés dans le dictionnaire. Ils seront remplis automatiquement la prochaine fois.`,
+    msg_savealldict: (n) => `${n} ${n > 1 ? 'entrées enregistrées' : 'entrée enregistrée'} dans le dictionnaire.`,
+    msg_savealldict_skip: (n,sk) => `${n} ${n > 1 ? 'entrées enregistrées' : 'entrée enregistrée'} (${sk} ${sk > 1 ? 'ignorées' : 'ignorée'}).`,
+    msg_savealldict_none: "Aucune entrée à enregistrer.",
+    msg_savealldict_none_skip: (sk) => `Aucune entrée à enregistrer (${sk} ${sk > 1 ? 'ignorées' : 'ignorée'}).`,
+    msg_savealldict_fail: "Échec de l'enregistrement. Rien n'a été enregistré.",
+    msg_savealldict_press: (n) => `n° ${n}`,
     msg_confirm_resetdict: "Supprimer tout le dictionnaire utilisateur ?",
     msg_resetdict: "Dictionnaire utilisateur réinitialisé.",
     msg_dict_empty: "Le dictionnaire utilisateur est vide. Enregistrez d'abord des mots.",
@@ -3534,6 +3579,12 @@ const I18N = {
     msg_img_pasted: "Imago agglutinata. \"Ex imaginibus extrahere\" preme.",
     msg_extracterr: (e) => `Error extractionis imaginis: ${e}`,
     msg_savedict: (n) => `${n} verba in glossario servata. Proxime automatice implebuntur.`,
+    msg_savealldict: (n) => `${n} ${n === 1 ? 'verbum in glossario servatum' : 'verba in glossario servata'}.`,
+    msg_savealldict_skip: (n,sk) => `${n} ${n === 1 ? 'verbum servatum' : 'verba servata'} (omissa: ${sk}).`,
+    msg_savealldict_none: "Nihil servari potest.",
+    msg_savealldict_none_skip: (sk) => `Nihil servari potest (omissa: ${sk}).`,
+    msg_savealldict_fail: "Servari non potuit. Nihil servatum est.",
+    msg_savealldict_press: (n) => `n. ${n}`,
     msg_confirm_resetdict: "Totum glossarium usoris delere?",
     msg_resetdict: "Glossarium usoris renovatum.",
     msg_dict_empty: "Glossarium usoris vacuum est. Prius verba serva.",
@@ -3654,6 +3705,12 @@ const I18N = {
     msg_img_pasted: "התמונה הודבקה. לחצו \"חלץ מתמונות\".",
     msg_extracterr: (e) => `שגיאת חילוץ תמונה: ${e}`,
     msg_savedict: (n) => `${n} מילים נשמרו למילון. בפעם הבאה ימולאו אוטומטית.`,
+    msg_savealldict: (n) => (n === 1 ? 'רשומה אחת נשמרה במילון.' : `${n} רשומות נשמרו במילון.`),
+    msg_savealldict_skip: (n,sk) => (n === 1 ? 'רשומה אחת נשמרה' : `${n} רשומות נשמרו`) + ` (דולגו: ${sk}).`,
+    msg_savealldict_none: "אין רשומות שניתן לשמור.",
+    msg_savealldict_none_skip: (sk) => `אין רשומות שניתן לשמור (דולגו: ${sk}).`,
+    msg_savealldict_fail: "השמירה במילון נכשלה. שום דבר לא נשמר.",
+    msg_savealldict_press: (n) => `#${n}`,
     msg_confirm_resetdict: "למחוק את כל מילון המשתמש?",
     msg_resetdict: "מילון המשתמש אופס.",
     msg_dict_empty: "מילון המשתמש ריק. שמרו תחילה מילים.",
@@ -5683,6 +5740,7 @@ function renderTable() {
         <tbody>${rows}</tbody>
       </table>
     </div>
+    <div class="save-result"><div class="save-result-slot" id="dict-save-result" role="status" aria-live="polite" aria-atomic="true"></div></div>
     <div class="btn-row" style="margin-top:14px;">
       <button class="btn btn-secondary" onclick="saveUserDictFromTable()" style="font-size:12px;">
         ${t('btn_savedict')}
@@ -5786,8 +5844,37 @@ function saveAllToDict() {
     userDict[d.originalName.toLowerCase()] = (d.translated || '').trim();
     count++;
   });
-  saveUserDict(userDict);
-  showAlert('success', skipped > 0 ? t('msg_savealldict_skip', count, skipped) : t('msg_savealldict', count));
+  try {
+    saveUserDict(userDict);
+  } catch (err) {
+    // 保存領域不足などで書けなかった。成功とは見せず、記録はエラーログへ残す。
+    logError('saveAllToDict', err);
+    showDictSaveResult('error', t('msg_savealldict_fail'));
+    return;
+  }
+  // count は今回書き込んだ行数（既存語の上書きを含む）。新しく増えた語数ではない。
+  const msg = count === 0
+    ? (skipped > 0 ? t('msg_savealldict_none_skip', skipped) : t('msg_savealldict_none'))
+    : (skipped > 0 ? t('msg_savealldict_skip', count, skipped) : t('msg_savealldict', count));
+  showDictSaveResult(count === 0 ? 'warn' : 'success', msg);
+}
+
+// 「全件を辞書に追加」の結果を、押したボタンのすぐ上（表と操作行のあいだ）に出す。
+// ページ上部の #alert-area は書き換えない（高さが変わるとスクロールアンカーで画面位置がずれる）。
+// フォーカスもスクロールも動かさない。同じ結果が続いても毎回中身を作り直すので、
+// 読み上げは押すたびに起こり、時刻で押すたびの更新が目でも分かる。
+function showDictSaveResult(kind, msg) {
+  const box = document.getElementById('dict-save-result');
+  if (!box) return;
+  const now = new Date();
+  const hms = [now.getHours(), now.getMinutes(), now.getSeconds()].map(v => String(v).padStart(2, '0')).join(':');
+  // 動きを減らす設定ではフェードが見えず、同じ秒の同じ結果は時刻も同じになる。2 回目からは
+  // 「何回目の操作か」を添えて、押すたびに文字が変わるようにする（件数とは別の言い方にする）。
+  const press = Number(box.dataset.press || 0) + 1;
+  box.dataset.press = String(press);
+  const nth = press > 1 ? ` <span class="save-result-nth">${escHtml(t('msg_savealldict_press', press))}</span>` : '';
+  box.dataset.state = kind;
+  box.innerHTML = `<span class="save-result-msg"><svg width="14" height="14" aria-hidden="true"><use href="#${kind === 'success' ? 'i-check' : 'i-alert'}"/></svg><span>${escHtml(msg)} <time dir="ltr" datetime="${now.toISOString()}">${hms}</time>${nth}</span></span>`;
 }
 
 // 既存の .lnc を読み込んでテーブルに展開（往復編集）
